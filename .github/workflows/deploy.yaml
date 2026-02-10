@@ -1,0 +1,51 @@
+name: Deploy Invoice Generator Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_KEY }}
+
+      - name: Deploy to VPS
+        env:
+          ENV_FILES: ${{ secrets.ENV_FILES }}
+        run: |
+          # Create project directory on server
+          ssh -o StrictHostKeyChecking=no azureuser@74.225.254.175 \
+            "mkdir -p /home/azureuser/projects/invoice-generator-node"
+
+          # Sync project files (exclude .git, node_modules, logs, .env)
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='logs' \
+            --exclude='.env' \
+            ./ azureuser@74.225.254.175:/home/azureuser/projects/invoice-generator-node/
+
+          # Write .env file from secrets
+          echo "$ENV_FILES" | ssh -o StrictHostKeyChecking=no azureuser@74.225.254.175 \
+            "cat > /home/azureuser/projects/invoice-generator-node/.env"
+
+          # Install dependencies and restart with PM2
+          ssh -o StrictHostKeyChecking=no azureuser@74.225.254.175 << 'EOF'
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            export PATH="$HOME/.nvm/versions/node/$(nvm current)/bin:$PATH"
+
+            cd /home/azureuser/projects/invoice-generator-node
+            npm ci --production
+            pm2 delete invoice-generator-node 2>/dev/null || true
+            pm2 start app.js --name invoice-generator-node
+            pm2 save
+          EOF
