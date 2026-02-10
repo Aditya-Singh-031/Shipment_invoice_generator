@@ -149,7 +149,7 @@ app.post('/api/upload-excel', upload.single('excelFile'), (req, res) => {
 });
 
 app.get('/api/download-sample', (req, res) => {
-    const filePath = path.join(__dirname, 'sample.xlsx');
+    const filePath = path.join(__dirname, 'Sample.xlsx');
     if (fs.existsSync(filePath)) res.download(filePath, 'Import_Template.xlsx');
     else res.status(404).send("No sample file");
 });
@@ -387,14 +387,14 @@ app.post('/api/generate/invoice', async (req, res) => {
             };
             const templateMap = {
                 cha_letter: 'CHA letter.docx',
-                evd_letter: 'EVD letter.docx',
-                non_vintage_letter: 'non vintage.docx',
-                scomet_letter: 'scomet declaratio.docx', 
+                evd_letter: 'EVD_letter.docx',
+                non_vintage_letter: 'non_vintage.docx',
+                scomet_letter: 'scomet_declaration.docx', 
             };
             // Fallback for SCOMET
             if (!fs.existsSync(path.join(__dirname, 'word docs', templateMap.scomet_letter))) {
-                 if (fs.existsSync(path.join(__dirname, 'word docs', 'scomet declaration.docx'))) {
-                     templateMap.scomet_letter = 'scomet declaration.docx';
+                 if (fs.existsSync(path.join(__dirname, 'word docs', 'scomet declaratio.docx'))) {
+                     templateMap.scomet_letter = 'scomet declaratio.docx';
                  }
             }
             buffer = await generateDocument(templateMap[downloadVariant], context, 'pdf'); 
@@ -444,13 +444,13 @@ app.post('/api/generate/all-letters', async (req, res) => {
 
         const letterTypes = [
             { key: 'cha_letter', template: 'CHA letter.docx', filename: 'CHA_Letter' },
-            { key: 'evd_letter', template: 'EVD letter.docx', filename: 'EVD_Letter' },
-            { key: 'non_vintage_letter', template: 'non vintage.docx', filename: 'Non_Vintage' },
-            { key: 'scomet_letter', template: 'scomet declaratio.docx', filename: 'SCOMET_Declaration' }
+            { key: 'evd_letter', template: 'EVD_letter.docx', filename: 'EVD_Letter' },
+            { key: 'non_vintage_letter', template: 'non_vintage.docx', filename: 'Non_Vintage' },
+            { key: 'scomet_letter', template: 'scomet_declaration.docx', filename: 'SCOMET_Declaration' }
         ];
 
         const scometPath = path.join(__dirname, 'word docs', 'scomet declaratio.docx');
-        if (!fs.existsSync(scometPath)) letterTypes[3].template = 'scomet declaration.docx';
+        if (!fs.existsSync(scometPath)) letterTypes[3].template = 'scomet_declaration.docx';
 
         res.setHeader('Content-Type', 'application/zip');
         res.setHeader('Content-Disposition', `attachment; filename="All_Letters_${safeInvoiceNo}.zip"`);
