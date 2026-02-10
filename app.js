@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
@@ -8,7 +9,8 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken'); 
-// IMPORT generateTaxInvoiceWord HERE
+// IMPORT generateTaxInvoiceWord HERE// ... existing imports ...
+const { uploadToAzure } = require('./services/azureService'); // <--- Import this
 const { generateDocument } = require('./services/documentService');
 const { generateWordInvoice, generateTaxInvoiceWord } = require('./services/wordGenerator');
 const libre = require('libreoffice-convert');
@@ -467,5 +469,36 @@ app.post('/api/generate/all-letters', async (req, res) => {
     } catch (error) { res.status(500).json({ error: 'Zip Generation Failed' }); }
 });
 
+// --- NEW ROUTE: Upload Image to Azure ---
+app.post('/api/upload-image', upload.single('imageFile'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+
+        console.log(`Uploading ${req.file.originalname} to Azure...`);
+
+        // 1. Upload to Azure
+        const azureUrl = await uploadToAzure(
+            req.file.path, 
+            req.file.originalname, 
+            req.file.mimetype
+        );
+
+        // 2. Clean up local file (Multer saves it to /uploads first)
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error("Failed to delete local temp file:", err);
+        });
+
+        // 3. Respond with URL
+        res.json({ 
+            success: true, 
+            url: azureUrl, 
+            message: "Image uploaded successfully to Azure" 
+        });
+
+    } catch (error) {
+        console.error("Azure Upload Error:", error);
+        res.status(500).json({ error: "Upload failed: " + error.message });
+    }
+});
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
