@@ -500,5 +500,5 @@ app.post('/api/upload-image', upload.single('imageFile'), async (req, res) => {
         res.status(500).json({ error: "Upload failed: " + error.message });
     }
 });
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT ;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
