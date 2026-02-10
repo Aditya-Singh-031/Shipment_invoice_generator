@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Export Invoice System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .section-header {
+            background-color: #f8f9fa; border-bottom: 2px solid #e9ecef;
+            padding: 10px 15px; font-weight: bold; color: #2c3e50;
+        }
+        .add-btn { cursor: pointer; color: #0d6efd; font-weight: bold; text-decoration: none; font-size: 0.9em; margin-left: 10px; }
+        .add-btn:hover { text-decoration: underline; }
+    </style>
+</head>
+<body class="bg-light pb-5">
+
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold text-primary">Export Documentation Hub 🚢</h2>
+    </div>
+
+    <form id="invoiceForm" enctype="multipart/form-data">
+        
+        <div id="formErrors" class="alert alert-danger" style="display:none;">
+            <strong>Form Errors:</strong>
+            <ul id="errorList" class="mb-0"></ul>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="section-header">1. Exporter Details</div>
+            <div class="card-body">
+                <p class="text-muted mb-0">
+                    <strong>Exporter:</strong> Morsebiz Technology Services Pvt Ltd<br>
+                    20th Floor, Building No/Flat No – CTS No 95 4 B 3&4, 590 Oberoi Garden City, Goregaon East, Mumbai, Mumbai Suburban, Maharashtra 400063
+                </p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="section-header">2. Parties (Buyer / Consignee / CHA)</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Buyer <span class="add-btn" onclick="openCompanyModal()">+ Add New</span></label>
+                        <select class="form-select" name="buyer" id="buyerSelect" required>
+                            <option value="">Select Buyer...</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Consignee</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="consigneeSameAsBuyer" name="consigneeSameAsBuyer">
+                            <label class="form-check-label" for="consigneeSameAsBuyer">Same as Buyer</label>
+                        </div>
+                        <select class="form-select" name="consignee" id="consigneeSelect">
+                            <option value="">Select Consignee...</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">CHA Agent Name</label>
+                        <input type="text" class="form-control" name="chaAgent" id="chaAgentInput" placeholder="Enter CHA Name">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="section-header">3. Invoice Details</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Invoice Number</label>
+                        <input type="text" class="form-control" name="invoiceNumber" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Invoice Date</label>
+                        <input type="date" class="form-control" name="invoiceDate" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Terms of Payment</label>
+                        <input type="text" class="form-control" name="termsOfPayment">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="section-header">4. Shipment & Logistics</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Pre-Carriage By</label>
+                        <input type="text" class="form-control" name="preCarriageBy" value="By Road">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Place of Receipt</label>
+                        <input type="text" class="form-control" name="placeOfReceipt" value="Nhava Sheva Mumbai">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Port of Loading</label>
+                        <input type="text" class="form-control" name="portOfLoading" value="Nhava Sheva, India">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Port of Discharge</label>
+                        <input type="text" class="form-control" name="portOfDischarge">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Dispatch Location</label>
+                        <select class="form-select" name="dispatchLocation">
+                            <option value="MUMBAI">Mumbai</option>
+                            <option value="SOLAPUR">Solapur</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Terms of Delivery</label>
+                        <select class="form-select" name="termsOfDelivery">
+                            <option value="FOB">FOB</option>
+                            <option value="EXW">EXW</option>
+                            <option value="CFR">CFR</option>
+                            <option value="CIF">CIF</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="section-header">5. Packages & Weights</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">No. of Packages</label>
+                        <input type="number" class="form-control" name="numberOfPackages" value="1">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Total Net Weight (Kg)</label>
+                        <input type="number" step="0.01" class="form-control" name="totalNetWeight">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Total Gross Weight (Kg)</label>
+                        <input type="number" step="0.01" class="form-control" name="totalGrossWeight">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="section-header">6. Financials</div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Freight Charges</label>
+                        <input type="number" step="0.01" class="form-control" name="freightCharges" value="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Insurance Charges</label>
+                        <input type="number" step="0.01" class="form-control" name="insuranceCharges" value="0">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="splitFobFreight" id="splitCheck">
+                            <label class="form-check-label fw-bold" for="splitCheck">
+                                Split FOB Freight?
+                            </label>
+                            <div class="form-text">If checked, Freight/Insurance is distributed into unit rates.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="section-header">7. Line Items (Excel)</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Upload Excel File (.xlsx)</label>
+                    <input type="file" class="form-control" id="excelFile" accept=".xlsx, .xls">
+                </div>
+                
+                <div class="table-responsive mb-3" id="previewSection" style="display:none; max-height: 300px; overflow: auto;">
+                    <table class="table table-sm table-bordered table-hover" style="font-size: 0.85rem;">
+                        <thead class="table-light" id="previewHead"></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                    <div class="text-end text-muted small" id="recordCount"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-5">
+            <div class="col-md-6">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-dark btn-lg py-3 w-50" onclick="generateInvoice('normal', 'docx')">
+                        Normal (DOCX)
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-lg py-3 w-50" onclick="generateInvoice('normal', 'pdf')">
+                        Normal (PDF)
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-dark btn-lg py-3 w-50" onclick="generateInvoice('split', 'docx')">
+                        Split (DOCX)
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-lg py-3 w-50" onclick="generateInvoice('split', 'pdf')">
+                        Split (PDF)
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-12"><hr></div>
+            <h5 class="fw-bold">Letter Generation</h5>
+            
+            <div class="col-md-3 d-grid">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="generateInvoice('cha_letter', 'docx')">CHA (DOCX)</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="generateInvoice('cha_letter', 'pdf')">PDF</button>
+                </div>
+            </div>
+            <div class="col-md-3 d-grid">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="generateInvoice('evd_letter', 'docx')">EVD (DOCX)</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="generateInvoice('evd_letter', 'pdf')">PDF</button>
+                </div>
+            </div>
+            <div class="col-md-3 d-grid">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="generateInvoice('non_vintage_letter', 'docx')">Non-Vintage</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="generateInvoice('non_vintage_letter', 'pdf')">PDF</button>
+                </div>
+            </div>
+            <div class="col-md-3 d-grid">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="generateInvoice('scomet_letter', 'docx')">SCOMET</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="generateInvoice('scomet_letter', 'pdf')">PDF</button>
+                </div>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<div class="modal fade" id="companyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Party</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="companyForm">
+                    <div class="mb-3">
+                        <label class="form-label">Company Name *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="address" rows="3"></textarea>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">GST No</label>
+                            <input type="text" class="form-control" name="gst_number">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">IEC Code *</label>
+                            <input type="text" class="form-control" name="iec_code" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">PAN No *</label>
+                            <input type="text" class="form-control" name="pan_no" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveCompany()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let uploadedItems = [];
+    let companiesData = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchCompanies();
+        
+        document.getElementById('consigneeSameAsBuyer').addEventListener('change', (e) => {
+            const select = document.getElementById('consigneeSelect');
+            select.disabled = e.target.checked;
+            if (e.target.checked) select.value = ""; 
+        });
+
+        document.getElementById('excelFile').addEventListener('change', async (e) => {
+            if (!e.target.files[0]) return;
+            const formData = new FormData();
+            formData.append('excelFile', e.target.files[0]);
+
+            try {
+                const res = await fetch('/api/upload-excel', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                uploadedItems = data.items;
+                renderPreview(uploadedItems);
+                
+                if (data.currencyLabel) {
+                    window.detectedCurrency = data.currencyLabel;
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert('Upload failed');
+            }
+        });
+    });
+
+    async function fetchCompanies() {
+        try {
+            const res = await fetch('/api/companies');
+            const data = await res.json(); 
+            companiesData = data;
+            populateDropdowns();
+        } catch (e) {
+            console.error('Failed to load companies', e);
+        }
+    }
+
+    function populateDropdowns() {
+        const buyerSel = document.getElementById('buyerSelect');
+        const consSel = document.getElementById('consigneeSelect');
+
+        const currentBuyer = buyerSel.value;
+        const currentCons = consSel.value;
+
+        buyerSel.innerHTML = '<option value="">Select Buyer...</option>';
+        consSel.innerHTML = '<option value="">Select Consignee...</option>';
+
+        companiesData.forEach(c => {
+            const opt = `<option value="${c._id}">${c.name}</option>`;
+            buyerSel.insertAdjacentHTML('beforeend', opt);
+            consSel.insertAdjacentHTML('beforeend', opt);
+        });
+
+        buyerSel.value = currentBuyer;
+        consSel.value = currentCons;
+    }
+
+    const companyModal = new bootstrap.Modal(document.getElementById('companyModal'));
+    
+    function openCompanyModal() {
+        document.getElementById('companyForm').reset();
+        companyModal.show();
+    }
+
+    async function saveCompany() {
+        const form = document.getElementById('companyForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const payload = Object.fromEntries(new FormData(form));
+
+        try {
+            const res = await fetch('/api/companies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await res.json();
+            if (result.success) {
+                companyModal.hide();
+                fetchCompanies();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (e) {
+            alert('Save failed: ' + e.message);
+        }
+    }
+
+    function renderPreview(items) {
+        const tbody = document.getElementById('previewBody');
+        const thead = document.getElementById('previewHead');
+        tbody.innerHTML = '';
+        thead.innerHTML = '';
+
+        if (!items || items.length === 0) {
+            document.getElementById('previewSection').style.display = 'none';
+            return;
+        }
+
+        const headers = ['#', 'Ref No', 'Part No', 'Description', 'HSN', 'Qty', 'Rate', 'Amount'];
+        let hHtml = '<tr>';
+        headers.forEach(h => hHtml += `<th>${h}</th>`);
+        hHtml += '</tr>';
+        thead.innerHTML = hHtml;
+
+        items.slice(0, 50).forEach((item, i) => {
+            const tr = `<tr>
+                <td>${i + 1}</td>
+                <td>${item.refNo || ''}</td>
+                <td>${item.partNo || ''}</td>
+                <td>${item.description}</td>
+                <td>${item.hsn}</td>
+                <td>${item.qty}</td>
+                <td>${item.rate}</td>
+                <td>${item.amount}</td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', tr);
+        });
+
+        document.getElementById('recordCount').innerText = `Showing first ${Math.min(items.length, 50)} of ${items.length} items`;
+        document.getElementById('previewSection').style.display = 'block';
+    }
+
+    // UPDATED: generateInvoice now accepts 'outputFormat'
+    async function generateInvoice(downloadVariant, outputFormat) {
+        const form = document.getElementById('invoiceForm');
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData);
+        
+        payload.lineItems = uploadedItems;
+        payload.downloadVariant = downloadVariant;
+        payload.currencyLabel = window.detectedCurrency || 'USD';
+        
+        // Pass the format to backend (docx or pdf)
+        payload.outputFormat = outputFormat || 'docx';
+
+        const buyerId = payload.buyer;
+        const consigneeId = payload.consignee;
+        
+        if (buyerId) {
+            payload.buyer = companiesData.find(c => c._id === buyerId);
+            if (payload.consigneeSameAsBuyer) {
+                payload.consignee = payload.buyer;
+            }
+        }
+        
+        if (consigneeId && !payload.consigneeSameAsBuyer) {
+            payload.consignee = companiesData.find(c => c._id === consigneeId);
+        }
+
+        try {
+            const res = await fetch('/api/generate/invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const error = await res.text();
+                alert('Generation failed: ' + error);
+                return;
+            }
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // Use correct extension based on requested format
+            a.download = `Invoice_${payload.invoiceNumber}_${downloadVariant}.${payload.outputFormat}`;
+            a.click();
+        } catch (e) {
+            alert('Error generating invoice: ' + e.message);
+        }
+    }
+</script>
+
+</body>
+</html>
