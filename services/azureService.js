@@ -4,8 +4,23 @@ const path = require('path');
 
 // Initialize Client
 const AZURE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME || 'images'; // e.g., imagesmay2025
-const FOLDER_PREFIX = 'inventory-folder'; // The "folder" inside the container
+
+// Handle "container/folder" format in env var
+let uniqueContainerName = 'images'; 
+let folderPrefix = 'inventory-folder';
+
+if (process.env.AZURE_CONTAINER_NAME) {
+    const parts = process.env.AZURE_CONTAINER_NAME.split('/');
+    if (parts.length > 1) {
+        uniqueContainerName = parts[0];
+        folderPrefix = parts.slice(1).join('/'); // Join rest in case of nested folders "container/a/b"
+    } else {
+        uniqueContainerName = process.env.AZURE_CONTAINER_NAME;
+    }
+}
+
+const CONTAINER_NAME = uniqueContainerName;
+const FOLDER_PREFIX = folderPrefix;
 
 let blobServiceClient;
 let containerClient;

@@ -1,4 +1,4 @@
-name: Deploy Invoice Generator Backend
+name: Deploy Warehouse Ops Backend
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
         run: |
           # Create project directory on server
           ssh -o StrictHostKeyChecking=no azureuser@74.225.254.175 \
-            "mkdir -p /home/azureuser/projects/invoice-generator-node"
+            "mkdir -p /home/azureuser/projects/shipments-backend.morsebiz.com"
 
           # Sync project files (exclude .git, node_modules, logs, .env)
           rsync -avz --delete \
@@ -31,11 +31,11 @@ jobs:
             --exclude='node_modules' \
             --exclude='logs' \
             --exclude='.env' \
-            ./ azureuser@74.225.254.175:/home/azureuser/projects/invoice-generator-node/
+            ./ azureuser@74.225.254.175:/home/azureuser/projects/shipments-backend.morsebiz.com/
 
           # Write .env file from secrets
           echo "$ENV_FILES" | ssh -o StrictHostKeyChecking=no azureuser@74.225.254.175 \
-            "cat > /home/azureuser/projects/invoice-generator-node/.env"
+            "cat > /home/azureuser/projects/shipments-backend.morsebiz.com/.env"
 
           # Install dependencies and restart with PM2
           ssh -o StrictHostKeyChecking=no azureuser@74.225.254.175 << 'EOF'
@@ -43,9 +43,9 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             export PATH="$HOME/.nvm/versions/node/$(nvm current)/bin:$PATH"
 
-            cd /home/azureuser/projects/invoice-generator-node
+            cd /home/azureuser/projects/shipments-backend.morsebiz.com
             npm ci --production
-            pm2 delete invoice-generator-node 2>/dev/null || true
-            pm2 start app.js --name invoice-generator-node
+            pm2 delete shipments-backend.morsebiz.com 2>/dev/null || true
+            pm2 start src/server.js --name shipments-backend.morsebiz.com
             pm2 save
           EOF
