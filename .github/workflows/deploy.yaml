@@ -46,6 +46,6 @@ jobs:
             cd /home/azureuser/projects/shipments-backend.morsebiz.com
             npm ci --production
             pm2 delete shipments-backend.morsebiz.com 2>/dev/null || true
-            pm2 start src/server.js --name shipments-backend.morsebiz.com
+            pm2 start app.js --name shipments-backend.morsebiz.com
             pm2 save
           EOF
