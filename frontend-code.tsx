@@ -9,17 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Upload, FileText, Download, Plus, FileSpreadsheet, ArrowLeft, History, Save, Filter, ArrowUpDown, Archive } from "lucide-react"; 
-import { toast } from "sonner"; 
+import { Upload, FileText, Download, Plus, FileSpreadsheet, ArrowLeft, History, Save, Filter, ArrowUpDown, Archive } from "lucide-react";
+import { toast } from "sonner";
 
-import { 
-  getCompanies, 
-  createCompany, 
-  uploadExcel, 
-  generateDocumentAPI, 
-  generateWorkingExcelAPI, 
+import {
+  getCompanies,
+  createCompany,
+  uploadExcel,
+  generateDocumentAPI,
+  generateWorkingExcelAPI,
   downloadSampleFile,
-  getShipments,       
+  getShipments,
   getShipmentById,
   saveShipmentAPI,
   generateAllLettersAPI  // NEW: Add this to your lib/api.ts
@@ -53,7 +53,7 @@ export default function ShipmentGeneratorPage() {
   const [companies, setCompanies] = useState([]);
   const [uploadedItems, setUploadedItems] = useState([]);
   const [detectedCurrency, setDetectedCurrency] = useState("USD");
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCompany, setNewCompany] = useState({ name: "", address: "", gst_number: "", iec_code: "", pan_no: "" });
 
@@ -70,11 +70,11 @@ export default function ShipmentGeneratorPage() {
   useEffect(() => { loadEssentials(); loadShipmentHistory(); }, []);
   useEffect(() => { if (viewMode === "LIST") loadShipmentHistory(); }, [viewMode, filters, sortBy, sortOrder]);
 
-  const loadEssentials = async () => { try { setCompanies(await getCompanies()); } catch (e) {} };
-  
-  const loadShipmentHistory = async () => { 
-    try { 
-      setLoading(true); 
+  const loadEssentials = async () => { try { setCompanies(await getCompanies()); } catch (e) { } };
+
+  const loadShipmentHistory = async () => {
+    try {
+      setLoading(true);
       // Build query params from filters and sort
       const params = new URLSearchParams();
       if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
@@ -83,14 +83,14 @@ export default function ShipmentGeneratorPage() {
       if (filters.quantityMax) params.append("quantityMax", filters.quantityMax);
       if (sortBy) params.append("sortBy", sortBy);
       if (sortOrder) params.append("sortOrder", sortOrder);
-      
+
       const data = await getShipments(params.toString());
       setShipmentList(data);
-    } catch (e) { 
-      toast.error("Failed to load history"); 
-    } finally { 
-      setLoading(false); 
-    } 
+    } catch (e) {
+      toast.error("Failed to load history");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFilterChange = (key, value) => {
@@ -126,7 +126,7 @@ export default function ShipmentGeneratorPage() {
     try {
       setLoading(true);
       const { shipment, details } = await getShipmentById(id);
-      
+
       setCurrentShipmentId(shipment._id);
 
       setFormData({
@@ -152,23 +152,23 @@ export default function ShipmentGeneratorPage() {
       });
 
       const items = details.map(d => ({
-        refNo: d.reference_number, 
-        partNo: d.part_number, 
+        refNo: d.reference_number,
+        partNo: d.part_number,
         description: d.description,
-        hsn: d.hsn_code, 
-        qty: getMongoNum(d.quantity), 
-        rate: getMongoNum(d.unit_price), 
-        amount: getMongoNum(d.quantity) * getMongoNum(d.unit_price) 
+        hsn: d.hsn_code,
+        qty: getMongoNum(d.quantity),
+        rate: getMongoNum(d.unit_price),
+        amount: getMongoNum(d.quantity) * getMongoNum(d.unit_price)
       }));
-      
+
       setUploadedItems(items);
       setDetectedCurrency(shipment.currency || "USD");
       setViewMode("EDITOR");
-    } catch (err) { 
+    } catch (err) {
       console.error(err);
-      toast.error("Failed to load details"); 
-    } finally { 
-      setLoading(false); 
+      toast.error("Failed to load details");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -245,23 +245,23 @@ export default function ShipmentGeneratorPage() {
     } catch (err) { toast.error("Failed to save party."); }
   };
 
-  const generate = async (variant) => {
+  const generate = async (variant, outputFormat = 'pdf') => {
     if (uploadedItems.length === 0 && !variant.includes('letter')) return toast.warning("Upload Excel first.");
     const buyerObj = companies.find(c => c._id === formData.buyer);
     let consigneeObj = formData.consigneeSameAsBuyer ? buyerObj : companies.find(c => c._id === formData.consignee);
-    
-    const payload = { ...formData, buyer: buyerObj, consignee: consigneeObj, lineItems: uploadedItems, downloadVariant: variant, currencyLabel: detectedCurrency };
+
+    const payload = { ...formData, buyer: buyerObj, consignee: consigneeObj, lineItems: uploadedItems, downloadVariant: variant, currencyLabel: detectedCurrency, outputFormat };
 
     try {
       toast.loading("Generating...");
       let blob;
       let filename;
       if (variant === 'working_excel') {
-          blob = await generateWorkingExcelAPI(payload);
-          filename = `Working_File_${formData.invoiceNumber}.xlsx`;
+        blob = await generateWorkingExcelAPI(payload);
+        filename = `Working_File_${formData.invoiceNumber}.xlsx`;
       } else {
-          blob = await generateDocumentAPI(payload);
-          filename = `Invoice_${formData.invoiceNumber}_${variant}.pdf`;
+        blob = await generateDocumentAPI(payload);
+        filename = `Invoice_${formData.invoiceNumber}_${variant}.${outputFormat}`;
       }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -279,16 +279,16 @@ export default function ShipmentGeneratorPage() {
   const handleDownloadAllLetters = async () => {
     if (!formData.invoiceNumber) return toast.warning("Please enter Invoice Number first.");
     if (!formData.invoiceDate) return toast.warning("Please enter Invoice Date first.");
-    
+
     const buyerObj = companies.find(c => c._id === formData.buyer);
     let consigneeObj = formData.consigneeSameAsBuyer ? buyerObj : companies.find(c => c._id === formData.consignee);
-    
-    const payload = { 
-      ...formData, 
-      buyer: buyerObj, 
-      consignee: consigneeObj, 
-      lineItems: uploadedItems, 
-      currencyLabel: detectedCurrency 
+
+    const payload = {
+      ...formData,
+      buyer: buyerObj,
+      consignee: consigneeObj,
+      lineItems: uploadedItems,
+      currencyLabel: detectedCurrency
     };
 
     try {
@@ -303,9 +303,9 @@ export default function ShipmentGeneratorPage() {
       a.remove();
       toast.dismiss();
       toast.success("All letters downloaded!");
-    } catch (err) { 
-      toast.dismiss(); 
-      toast.error("Failed to generate all letters."); 
+    } catch (err) {
+      toast.dismiss();
+      toast.error("Failed to generate all letters.");
     }
   };
 
@@ -339,58 +339,58 @@ export default function ShipmentGeneratorPage() {
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Date From</Label>
-                  <Input 
-                    type="date" 
-                    value={filters.dateFrom} 
-                    onChange={(e) => handleFilterChange("dateFrom", e.target.value)} 
+                  <Input
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Date To</Label>
-                  <Input 
-                    type="date" 
-                    value={filters.dateTo} 
-                    onChange={(e) => handleFilterChange("dateTo", e.target.value)} 
+                  <Input
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e) => handleFilterChange("dateTo", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Min Quantity</Label>
-                  <Input 
-                    type="number" 
-                    placeholder="Min" 
-                    value={filters.quantityMin} 
-                    onChange={(e) => handleFilterChange("quantityMin", e.target.value)} 
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.quantityMin}
+                    onChange={(e) => handleFilterChange("quantityMin", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Max Quantity</Label>
-                  <Input 
-                    type="number" 
-                    placeholder="Max" 
-                    value={filters.quantityMax} 
-                    onChange={(e) => handleFilterChange("quantityMax", e.target.value)} 
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.quantityMax}
+                    onChange={(e) => handleFilterChange("quantityMax", e.target.value)}
                   />
                 </div>
               </div>
               <div className="flex items-center gap-4 pt-2 border-t">
                 <Label>Sort By:</Label>
                 <div className="flex gap-2">
-                  <Button 
-                    variant={sortBy === "date" ? "default" : "outline"} 
+                  <Button
+                    variant={sortBy === "date" ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleSortChange("date")}
                   >
                     Date {sortBy === "date" && (sortOrder === "asc" ? "↑" : "↓")}
                   </Button>
-                  <Button 
-                    variant={sortBy === "quantity" ? "default" : "outline"} 
+                  <Button
+                    variant={sortBy === "quantity" ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleSortChange("quantity")}
                   >
                     Quantity {sortBy === "quantity" && (sortOrder === "asc" ? "↑" : "↓")}
                   </Button>
-                  <Button 
-                    variant={sortBy === "created_at" ? "default" : "outline"} 
+                  <Button
+                    variant={sortBy === "created_at" ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleSortChange("created_at")}
                   >
@@ -460,12 +460,12 @@ export default function ShipmentGeneratorPage() {
             <FileText className="h-8 w-8" /> {formData.invoiceNumber ? `Edit: ${formData.invoiceNumber}` : "New Shipment"}
           </h2>
         </div>
-        
+
         <Button onClick={handleSaveOnly} className="bg-green-600 hover:bg-green-700">
           <Save className="h-4 w-4 mr-2" /> Save Shipment
         </Button>
       </div>
-      
+
       {/* 1. EXPORTER */}
       <Card className="bg-slate-50">
         <CardHeader className="pb-3"><CardTitle className="text-sm text-slate-500 uppercase">1. Exporter Details</CardTitle></CardHeader>
@@ -485,7 +485,7 @@ export default function ShipmentGeneratorPage() {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between"><Label>Consignee</Label>
-              <div className="flex items-center gap-2"><Checkbox id="same" checked={formData.consigneeSameAsBuyer} onCheckedChange={(chk) => setFormData(p => ({...p, consigneeSameAsBuyer: chk, consignee: chk ? p.buyer : ""}))} /><label htmlFor="same" className="text-xs cursor-pointer">Same as Buyer</label></div>
+              <div className="flex items-center gap-2"><Checkbox id="same" checked={formData.consigneeSameAsBuyer} onCheckedChange={(chk) => setFormData(p => ({ ...p, consigneeSameAsBuyer: chk, consignee: chk ? p.buyer : "" }))} /><label htmlFor="same" className="text-xs cursor-pointer">Same as Buyer</label></div>
             </div>
             <Select value={formData.consignee} onValueChange={(v) => handleSelectChange("consignee", v)} disabled={formData.consigneeSameAsBuyer}>
               <SelectTrigger><SelectValue placeholder="Select Consignee..." /></SelectTrigger>
@@ -538,7 +538,7 @@ export default function ShipmentGeneratorPage() {
           <div className="space-y-2"><Label>Freight</Label><Input name="freightCharges" value={formData.freightCharges} onChange={handleInputChange} /></div>
           <div className="space-y-2"><Label>Insurance</Label><Input name="insuranceCharges" value={formData.insuranceCharges} onChange={handleInputChange} /></div>
           <div className="col-span-3 flex items-center gap-2 pt-8 pl-4">
-            <Checkbox id="split" checked={formData.splitFobFreight} onCheckedChange={(c) => setFormData(p => ({...p, splitFobFreight: c}))} />
+            <Checkbox id="split" checked={formData.splitFobFreight} onCheckedChange={(c) => setFormData(p => ({ ...p, splitFobFreight: c }))} />
             <div><Label htmlFor="split">Split FOB Freight?</Label><p className="text-xs text-muted-foreground">PDF shows total only. Excel shows split details.</p></div>
           </div>
         </CardContent>
@@ -547,7 +547,7 @@ export default function ShipmentGeneratorPage() {
       <Card className="border-dashed border-2">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="text-base flex items-center gap-2"><Upload className="h-5 w-5"/> Line Items</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><Upload className="h-5 w-5" /> Line Items</CardTitle>
             <Button variant="outline" size="sm" onClick={downloadSampleFile}><Download className="h-4 w-4 mr-2" /> Sample</Button>
           </div>
         </CardHeader>
@@ -581,7 +581,8 @@ export default function ShipmentGeneratorPage() {
           <CardHeader><CardTitle>Generate</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
             <Button variant="secondary" className="w-full h-12" onClick={() => generate('commercial_invoice')}>Generate Commercial Invoice (PDF)</Button>
-            <Button variant="outline" className="w-full text-black bg-white" onClick={() => generate('working_excel')}><FileSpreadsheet className="h-4 w-4 mr-2 text-green-600"/> Working Excel</Button>
+            <Button variant="secondary" className="w-full h-12 mt-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => generate('commercial_invoice', 'docx')}>Generate Commercial Invoice (DOCX)</Button>
+            <Button variant="outline" className="w-full text-black bg-white" onClick={() => generate('working_excel')}><FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> Working Excel</Button>
           </CardContent>
         </Card>
         <Card>
@@ -589,9 +590,9 @@ export default function ShipmentGeneratorPage() {
             <div className="flex justify-between items-center">
               <CardTitle>Letters</CardTitle>
               {/* NEW: Download All Letters Button */}
-              <Button 
-                variant="default" 
-                size="sm" 
+              <Button
+                variant="default"
+                size="sm"
                 onClick={handleDownloadAllLetters}
                 className="bg-blue-600 hover:bg-blue-700"
               >
@@ -612,13 +613,13 @@ export default function ShipmentGeneratorPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Add Party</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Name" value={newCompany.name} onChange={e => setNewCompany({...newCompany, name: e.target.value})} />
-            <Input placeholder="Address" value={newCompany.address} onChange={e => setNewCompany({...newCompany, address: e.target.value})} />
+            <Input placeholder="Name" value={newCompany.name} onChange={e => setNewCompany({ ...newCompany, name: e.target.value })} />
+            <Input placeholder="Address" value={newCompany.address} onChange={e => setNewCompany({ ...newCompany, address: e.target.value })} />
             <div className="grid grid-cols-2 gap-2">
-              <Input placeholder="GST" value={newCompany.gst_number} onChange={e => setNewCompany({...newCompany, gst_number: e.target.value})} />
-              <Input placeholder="IEC" value={newCompany.iec_code} onChange={e => setNewCompany({...newCompany, iec_code: e.target.value})} />
+              <Input placeholder="GST" value={newCompany.gst_number} onChange={e => setNewCompany({ ...newCompany, gst_number: e.target.value })} />
+              <Input placeholder="IEC" value={newCompany.iec_code} onChange={e => setNewCompany({ ...newCompany, iec_code: e.target.value })} />
             </div>
-            <Input placeholder="PAN" value={newCompany.pan_no} onChange={e => setNewCompany({...newCompany, pan_no: e.target.value})} />
+            <Input placeholder="PAN" value={newCompany.pan_no} onChange={e => setNewCompany({ ...newCompany, pan_no: e.target.value })} />
           </div>
           <DialogFooter><Button onClick={handleSaveCompany}>Save</Button></DialogFooter>
         </DialogContent>

@@ -421,10 +421,27 @@ app.post('/api/generate/invoice', async (req, res) => {
             filename = `${typeLabel}_Invoice_${safeInvoiceNo}.pdf`;
         }
 
-        const pdfBuffer = await convertAsync(buffer, '.pdf', undefined);
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.send(pdfBuffer);
+        const outputFormat = body.outputFormat || 'pdf';
+
+        if (outputFormat === 'docx') {
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename.replace('.pdf', '.docx')}"`);
+            res.send(buffer);
+        } else {
+            try {
+                const pdfBuffer = await convertAsync(buffer, '.pdf', undefined);
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.send(pdfBuffer);
+            } catch (err) {
+                console.error('PDF conversion failed. Falling back to DOCX:', err.message);
+                // Fallback to DOCX if LibreOffice is not available on the server
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                res.setHeader('Content-Disposition', `attachment; filename="${filename.replace('.pdf', '.docx')}"`);
+                res.setHeader('X-Output-Format', 'docx');
+                res.send(buffer);
+            }
+        }
 
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
