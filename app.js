@@ -67,7 +67,11 @@ const app = express();
 const upload = multer({ dest: 'uploads/' });
 const JWT_SECRET = process.env.JWT_SECRET || "morsebiz_secret_key_123";
 
-app.use(cors()); 
+app.use(cors({
+    origin: true,
+    credentials: true,
+    exposedHeaders: ['Content-Disposition', 'X-Output-Format']
+})); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -115,7 +119,37 @@ app.post('/api/upload-excel', upload.single('excelFile'), (req, res) => {
         if (!req.file) return res.status(400).json({ error: 'No file' });
         const workbook = xlsx.readFile(req.file.path);
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+        // Detect header row (many files have title rows before headers)
+        const rowsAsArrays = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        const headerKeywords = [
+            'HSN', 'HSN CODE',
+            'DESCRIPTION', 'DESCRIPTION OF GOODS', 'DESC',
+            'QTY', 'QUANTITY',
+            'RATE', 'PRICE', 'WITH FOB RATE',
+            'PART NO', 'PART NUMBER',
+            'REF NO', 'REFERENCE',
+        ];
+        const normalize = (v) => String(v || '').trim().toUpperCase();
+        let headerRowIdx = -1;
+        let bestScore = 0;
+
+        rowsAsArrays.forEach((row, idx) => {
+            const cells = row.map(normalize);
+            if (cells.length === 0) return;
+            let score = 0;
+            headerKeywords.forEach(k => {
+                if (cells.some(c => c === k || c.includes(k))) score += 1;
+            });
+            if (score > bestScore) {
+                bestScore = score;
+                headerRowIdx = idx;
+            }
+        });
+
+        // Use detected header row if it looks valid, otherwise fall back to first row
+        if (headerRowIdx < 0 || bestScore < 2) headerRowIdx = 0;
+
+        const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: '', range: headerRowIdx });
         
         let currencyLabel = 'USD';
         const headers = Object.keys(rawRows[0] || {});
@@ -329,6 +363,7 @@ app.post('/api/generate/working-excel', (req, res) => {
         xlsx.utils.book_append_sheet(wb, ws, "Working File");
         
         const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="Working_File_${sanitizeFilename(body.invoiceNumber)}.xlsx"`);
         res.send(buffer);
     } catch (err) { res.status(500).json({ error: "Excel Gen Failed" }); }
@@ -478,8 +513,13 @@ app.post('/api/generate/all-letters', async (req, res) => {
         for (const letter of letterTypes) {
             try {
                 const buffer = await generateDocument(letter.template, context, 'pdf');
-                const pdfBuffer = await convertAsync(buffer, '.pdf', undefined);
-                archive.append(pdfBuffer, { name: `${letter.filename}_${safeInvoiceNo}.pdf` });
+                try {
+                    const pdfBuffer = await convertAsync(buffer, '.pdf', undefined);
+                    archive.append(pdfBuffer, { name: `${letter.filename}_${safeInvoiceNo}.pdf` });
+                } catch (err) {
+                    console.error(`PDF conversion failed for ${letter.key}. Using DOCX:`, err.message);
+                    archive.append(buffer, { name: `${letter.filename}_${safeInvoiceNo}.docx` });
+                }
             } catch (err) { console.error(`Error generating ${letter.key}:`, err.message); }
         }
         archive.finalize();
