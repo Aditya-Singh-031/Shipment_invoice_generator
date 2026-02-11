@@ -71,6 +71,29 @@ function formatDateDisplay(date) {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function formatDeliveryTerms(value) {
+  const deliveryTermsMap = {
+    FOB: 'FOB (Free on Board)',
+    EXW: 'EXW (Ex Works)',
+    CFR: 'CFR (Cost and Freight)',
+    CIF: 'CIF (Cost, Insurance & Freight)'
+  };
+  if (!value) return '-';
+  return deliveryTermsMap[value] || value;
+}
+
+function getDispatchAddress(invoiceData) {
+  const dispatchMap = {
+    MUMBAI: "Ground Floor, Godown No. 25/B, Survey No.25/B, 26/1A1, 26/1A2, 25/1A & 26/1B, BLR Logistiks (I) Limited C/O M/S Forefront Logistics Pvt Ltd, Post Mothi Jui Uran, Taki Gaon Bus Stop, Dighode Chirner Road, Bhom, Raigad, Maharashtra 410206",
+    SOLAPUR: "A/21/1, MIDC Chincholi, Solapur, Maharashtra - 413255"
+  };
+  const dispatchKey = String(invoiceData?.dispatchLocation || '').trim().toUpperCase();
+  return safeText(
+    invoiceData?.dispatchAddress || dispatchMap[dispatchKey] || invoiceData?.dispatchLocation,
+    '-'
+  );
+}
+
 function currencySymbol(label) {
   if (!label) return '';
   const normalized = String(label).toUpperCase();
@@ -197,22 +220,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   const consigneePan = pickCompanyField(consignee, ['panNo', 'pan_no', 'panNumber', 'pan']);
   const consigneeIec = pickCompanyField(consignee, ['iecCode', 'iec_code', 'iec']);
 
-  const deliveryTermsMap = {
-    FOB: 'FOB (Free on Board)',
-    EXW: 'EXW (Ex Works)',
-    CFR: 'CFR (Cost and Freight)',
-    CIF: 'CIF (Cost, Insurance & Freight)'
-  };
-
-  const dispatchMap = {
-    MUMBAI: "Ground Floor, Godown No. 25/B, Survey No.25/B, 26/1A1, 26/1A2, 25/1A & 26/1B, BLR Logistiks (I) Limited C/O M/S Forefront Logistics Pvt Ltd, Post Mothi Jui Uran, Taki Gaon Bus Stop, Dighode Chirner Road, Bhom, Raigad, Maharashtra 410206",
-    SOLAPUR: "A/21/1, MIDC Chincholi, Solapur, Maharashtra - 413255"
-  };
-  const dispatchKey = String(invoiceData.dispatchLocation || '').trim().toUpperCase();
-  const dispatchFrom = safeText(
-    invoiceData.dispatchAddress || dispatchMap[dispatchKey] || invoiceData.dispatchLocation,
-    '-'
-  );
+  const dispatchFrom = getDispatchAddress(invoiceData);
 
   const exporterInfoCell = new TableCell({
     children: [
@@ -247,7 +255,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
       labelValueRow('Invoice Date:', formatDateDisplay(invoiceData.invoiceDate)),
       labelValueRow('Expiry Date:', formatDateDisplay(invoiceData.invoiceExpiryDate)),
       labelValueRow('Terms of Payment:', invoiceData.termsOfPayment || '-'),
-      labelValueRow('Terms of Delivery:', deliveryTermsMap[invoiceData.termsOfDelivery] || safeText(invoiceData.termsOfDelivery, '-'))
+      labelValueRow('Terms of Delivery:', formatDeliveryTerms(invoiceData.termsOfDelivery))
     ],
     width: { size: 5000, type: WidthType.DXA }
   });
@@ -462,6 +470,24 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
       })
   );
 
+  const exporter = invoiceData.exporter || {};
+  const buyer = invoiceData.buyer || {};
+  const consignee = invoiceData.consignee || {};
+
+  const exporterGst = pickCompanyField(exporter, ['gstNo', 'gst_number', 'gstNumber', 'gstin', 'gstIn', 'gst']);
+  const exporterPan = pickCompanyField(exporter, ['panNo', 'pan_no', 'panNumber', 'pan']);
+  const exporterIec = pickCompanyField(exporter, ['iecCode', 'iec_code', 'iec']);
+
+  const buyerGst = pickCompanyField(buyer, ['gstNo', 'gst_number', 'gstNumber', 'gstin', 'gstIn', 'gst']);
+  const buyerPan = pickCompanyField(buyer, ['panNo', 'pan_no', 'panNumber', 'pan']);
+  const buyerIec = pickCompanyField(buyer, ['iecCode', 'iec_code', 'iec']);
+
+  const consigneeGst = pickCompanyField(consignee, ['gstNo', 'gst_number', 'gstNumber', 'gstin', 'gstIn', 'gst']);
+  const consigneePan = pickCompanyField(consignee, ['panNo', 'pan_no', 'panNumber', 'pan']);
+  const consigneeIec = pickCompanyField(consignee, ['iecCode', 'iec_code', 'iec']);
+
+  const dispatchFrom = getDispatchAddress(invoiceData);
+
   // Top Details Table
   const topTable = new Table({
       rows: [
@@ -469,10 +495,12 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
               children: [
                   new TableCell({
                       children: [
-                          new Paragraph({ children: [new TextRun({ text: 'Exporter:', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: invoiceData.exporter.name, bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: invoiceData.exporter.address, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${invoiceData.exporter.gstNo}`, bold: true, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: 'Exporter / Shipper:', bold: true, size: 16 })] }),
+                          new Paragraph({ children: [new TextRun({ text: exporter.name || '', bold: true, size: 16 })] }),
+                          new Paragraph({ children: [new TextRun({ text: exporter.address || '', size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${exporterGst || '-'}`, bold: true, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `PAN: ${exporterPan || '-'}`, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `IEC: ${exporterIec || '-'}`, size: 14 })] }),
                       ],
                       width: { size: 50, type: WidthType.PERCENTAGE }
                   }),
@@ -481,6 +509,8 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
                           new Paragraph({ children: [new TextRun({ text: `Invoice No: ${invoiceData.invoiceNumber}`, bold: true, size: 16 })] }),
                           new Paragraph({ children: [new TextRun({ text: `Date: ${formatDate(invoiceData.invoiceDate)}`, size: 14 })] }),
                           new Paragraph({ children: [new TextRun({ text: `Exchange Rate: ₹${exRate.toFixed(2)}`, bold: true, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `Terms of Payment: ${invoiceData.termsOfPayment || '-'}`, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `Terms of Delivery: ${formatDeliveryTerms(invoiceData.termsOfDelivery)}`, size: 14 })] }),
                       ],
                       width: { size: 50, type: WidthType.PERCENTAGE }
                   })
@@ -491,9 +521,26 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
                   new TableCell({
                       children: [
                           new Paragraph({ children: [new TextRun({ text: 'Consignee (Ship To):', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: invoiceData.consignee?.name || '', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: invoiceData.consignee?.address || '', size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${invoiceData.consignee?.gstNo || 'N/A'}`, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: consignee?.name || '', bold: true, size: 16 })] }),
+                          new Paragraph({ children: [new TextRun({ text: consignee?.address || '', size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${consigneeGst || 'N/A'}`, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `PAN: ${consigneePan || '-'}`, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `IEC: ${consigneeIec || '-'}`, size: 14 })] }),
+                      ],
+                      columnSpan: 2
+                  })
+              ]
+          }),
+          new TableRow({
+              children: [
+                  new TableCell({
+                      children: [
+                          new Paragraph({ children: [new TextRun({ text: 'Buyer (Bill To):', bold: true, size: 16 })] }),
+                          new Paragraph({ children: [new TextRun({ text: buyer?.name || '', bold: true, size: 16 })] }),
+                          new Paragraph({ children: [new TextRun({ text: buyer?.address || '', size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${buyerGst || 'N/A'}`, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `PAN: ${buyerPan || '-'}`, size: 14 })] }),
+                          new Paragraph({ children: [new TextRun({ text: `IEC: ${buyerIec || '-'}`, size: 14 })] }),
                       ],
                       columnSpan: 2
                   })
@@ -505,11 +552,28 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   sectionChildren.push(topTable);
   sectionChildren.push(new Paragraph({ text: '' }));
 
+  // Shipping & Logistics (Tax Invoice)
+  const shippingTable = new Table({
+      rows: [
+          labelValueRow('Dispatch From:', dispatchFrom, { labelSize: 18, valueSize: 18 }),
+          labelValueRow('Pre-Carriage By:', invoiceData.preCarriageBy || '-', { labelSize: 18, valueSize: 18 }),
+          labelValueRow('Place of Receipt:', invoiceData.placeOfReceipt || '-', { labelSize: 18, valueSize: 18 }),
+          labelValueRow('Port of Loading:', invoiceData.portOfLoading || '-', { labelSize: 18, valueSize: 18 }),
+          labelValueRow('Port of Discharge:', invoiceData.portOfDischarge || '-', { labelSize: 18, valueSize: 18 }),
+          labelValueRow('Total Net Weight:', invoiceData.totalNetWeight ? `${invoiceData.totalNetWeight} KGS` : '-', { labelSize: 18, valueSize: 18 }),
+          labelValueRow('Total Gross Weight:', invoiceData.totalGrossWeight ? `${invoiceData.totalGrossWeight} KGS` : '-', { labelSize: 18, valueSize: 18 }),
+          labelValueRow('Total Packages:', invoiceData.numberOfPackages || '-', { labelSize: 18, valueSize: 18 })
+      ],
+      width: { size: 10080, type: WidthType.DXA }
+  });
+  sectionChildren.push(shippingTable);
+  sectionChildren.push(new Paragraph({ text: '' }));
+
   // Items Table Headers
   const headers = ['Sr', 'Description', 'HSN', 'Qty', 'Unit', 'Rate($)', 'Rate(₹)', 'Taxable(₹)', 'IGST%', 'IGST Amt', 'Total(₹)'];
   const headerRow = new TableRow({
       tableHeader: true,
-      children: headers.map(h => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0'))
+      children: headers.map(h => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0', '000000'))
   });
 
   const rows = [headerRow];

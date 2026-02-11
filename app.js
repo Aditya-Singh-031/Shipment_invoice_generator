@@ -405,7 +405,20 @@ app.post('/api/generate/invoice', async (req, res) => {
                     buyer: body.buyer,
                     consignee: body.consigneeSameAsBuyer ? body.buyer : body.consignee,
                     invoiceNumber: body.invoiceNumber,
-                    invoiceDate: rawInvoiceDate
+                    invoiceDate: rawInvoiceDate,
+                    invoiceExpiryDate: calculatedExpiryDate,
+                    termsOfPayment: body.termsOfPayment,
+                    dispatchLocation: body.dispatchLocation,
+                    preCarriageBy: body.preCarriageBy,
+                    placeOfReceipt: body.placeOfReceipt,
+                    portOfLoading: body.portOfLoading,
+                    portOfDischarge: body.portOfDischarge,
+                    termsOfDelivery: body.termsOfDelivery,
+                    numberOfPackages: body.numberOfPackages,
+                    totalNetWeight: body.totalNetWeight,
+                    totalGrossWeight: body.totalGrossWeight,
+                    freightCharges: safeParseFloat(body.freightCharges),
+                    insuranceCharges: safeParseFloat(body.insuranceCharges)
                 },
                 processedItems,
                 exchangeRate
