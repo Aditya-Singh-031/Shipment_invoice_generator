@@ -112,13 +112,13 @@ function labelValueRow(label, value, { labelSize = 20, valueSize = 20 } = {}) {
     children: [
       new TableCell({
         children: [makeParagraph(label, { bold: true, size: labelSize })],
-        width: { size: 40, type: WidthType.PERCENTAGE },
+        width: { size: 2000, type: WidthType.DXA },
         verticalAlign: VerticalAlign.TOP,
         borders: DEFAULT_BORDERS
       }),
       new TableCell({
         children: [makeParagraph(safeText(value, '-'), { size: valueSize })],
-        width: { size: 60, type: WidthType.PERCENTAGE },
+        width: { size: 3000, type: WidthType.DXA },
         verticalAlign: VerticalAlign.TOP,
         borders: DEFAULT_BORDERS
       })
@@ -204,7 +204,15 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
     CIF: 'CIF (Cost, Insurance & Freight)'
   };
 
-  const dispatchFrom = safeText(invoiceData.dispatchLocation, '-');
+  const dispatchMap = {
+    MUMBAI: "Ground Floor, Godown No. 25/B, Survey No.25/B, 26/1A1, 26/1A2, 25/1A & 26/1B, BLR Logistiks (I) Limited C/O M/S Forefront Logistics Pvt Ltd, Post Mothi Jui Uran, Taki Gaon Bus Stop, Dighode Chirner Road, Bhom, Raigad, Maharashtra 410206",
+    SOLAPUR: "A/21/1, MIDC Chincholi, Solapur, Maharashtra - 413255"
+  };
+  const dispatchKey = String(invoiceData.dispatchLocation || '').trim().toUpperCase();
+  const dispatchFrom = safeText(
+    invoiceData.dispatchAddress || dispatchMap[dispatchKey] || invoiceData.dispatchLocation,
+    '-'
+  );
 
   const exporterInfoCell = new TableCell({
     children: [
@@ -230,7 +238,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
       new TableRow({ children: [exporterInfoCell] }),
       new TableRow({ children: [dispatchCell] })
     ],
-    width: { size: 100, type: WidthType.PERCENTAGE }
+    width: { size: 5040, type: WidthType.DXA }
   });
 
   const invoiceInfoTable = new Table({
@@ -241,7 +249,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
       labelValueRow('Terms of Payment:', invoiceData.termsOfPayment || '-'),
       labelValueRow('Terms of Delivery:', deliveryTermsMap[invoiceData.termsOfDelivery] || safeText(invoiceData.termsOfDelivery, '-'))
     ],
-    width: { size: 100, type: WidthType.PERCENTAGE }
+    width: { size: 5000, type: WidthType.DXA }
   });
 
   const shippingTable = new Table({
@@ -254,7 +262,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
       labelValueRow('Total Gross Weight:', invoiceData.totalGrossWeight ? `${invoiceData.totalGrossWeight} KGS` : '-'),
       labelValueRow('Total Packages:', invoiceData.numberOfPackages || '-')
     ],
-    width: { size: 100, type: WidthType.PERCENTAGE }
+    width: { size: 5000, type: WidthType.DXA }
   });
 
   const rightCellChildren = [
@@ -270,20 +278,20 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
         children: [
           new TableCell({
             children: [exporterTable],
-            width: { size: 50, type: WidthType.PERCENTAGE },
+            width: { size: 5040, type: WidthType.DXA },
             verticalAlign: VerticalAlign.TOP,
             borders: DEFAULT_BORDERS
           }),
           new TableCell({
             children: rightCellChildren,
-            width: { size: 50, type: WidthType.PERCENTAGE },
+            width: { size: 5040, type: WidthType.DXA },
             verticalAlign: VerticalAlign.TOP,
             borders: DEFAULT_BORDERS
           })
         ]
       })
     ],
-    width: { size: 100, type: WidthType.PERCENTAGE }
+    width: { size: 10080, type: WidthType.DXA }
   });
 
   sectionChildren.push(topTable);
@@ -311,12 +319,12 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
     rows: [
       new TableRow({
         children: [
-          new TableCell({ children: consigneeCellChildren, width: { size: 50, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.TOP, borders: DEFAULT_BORDERS }),
-          new TableCell({ children: buyerCellChildren, width: { size: 50, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.TOP, borders: DEFAULT_BORDERS })
+          new TableCell({ children: consigneeCellChildren, width: { size: 5040, type: WidthType.DXA }, verticalAlign: VerticalAlign.TOP, borders: DEFAULT_BORDERS }),
+          new TableCell({ children: buyerCellChildren, width: { size: 5040, type: WidthType.DXA }, verticalAlign: VerticalAlign.TOP, borders: DEFAULT_BORDERS })
         ]
       })
     ],
-    width: { size: 100, type: WidthType.PERCENTAGE }
+    width: { size: 10080, type: WidthType.DXA }
   });
 
   sectionChildren.push(partiesTable);
@@ -326,7 +334,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   const headers = ['Sr', 'Ref No', 'Part No', 'Description of Goods', 'HSN/SAC', 'Qty', 'Rate', 'Amount'];
   const headerRow = new TableRow({
     tableHeader: true,
-    children: headers.map(h => cell(h, AlignmentType.CENTER, 1, true, 20, '2C3E50', 'FFFFFF'))
+    children: headers.map(h => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000'))
   });
 
   const rows = [headerRow];
@@ -352,7 +360,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   sectionChildren.push(new Table({
     rows,
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: 10080, type: WidthType.DXA },
     layout: TableLayoutType.AUTOFIT
   }));
 
@@ -394,7 +402,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
         ]
       })
     ],
-    width: { size: 50, type: WidthType.PERCENTAGE },
+    width: { size: 4896, type: WidthType.DXA },
     alignment: AlignmentType.RIGHT
   });
 
