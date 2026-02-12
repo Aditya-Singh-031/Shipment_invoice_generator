@@ -488,85 +488,127 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
 
   const dispatchFrom = getDispatchAddress(invoiceData);
 
-  // Top Details Table
-  const topTable = new Table({
-      rows: [
-          new TableRow({
-              children: [
-                  new TableCell({
-                      children: [
-                          new Paragraph({ children: [new TextRun({ text: 'Exporter / Shipper:', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: exporter.name || '', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: exporter.address || '', size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${exporterGst || '-'}`, bold: true, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `PAN: ${exporterPan || '-'}`, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `IEC: ${exporterIec || '-'}`, size: 14 })] }),
-                      ],
-                      width: { size: 50, type: WidthType.PERCENTAGE }
-                  }),
-                  new TableCell({
-                      children: [
-                          new Paragraph({ children: [new TextRun({ text: `Invoice No: ${invoiceData.invoiceNumber}`, bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `Date: ${formatDate(invoiceData.invoiceDate)}`, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `Exchange Rate: ₹${exRate.toFixed(2)}`, bold: true, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `Terms of Payment: ${invoiceData.termsOfPayment || '-'}`, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `Terms of Delivery: ${formatDeliveryTerms(invoiceData.termsOfDelivery)}`, size: 14 })] }),
-                      ],
-                      width: { size: 50, type: WidthType.PERCENTAGE }
-                  })
-              ]
-          }),
-          new TableRow({
-              children: [
-                  new TableCell({
-                      children: [
-                          new Paragraph({ children: [new TextRun({ text: 'Consignee (Ship To):', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: consignee?.name || '', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: consignee?.address || '', size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${consigneeGst || 'N/A'}`, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `PAN: ${consigneePan || '-'}`, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `IEC: ${consigneeIec || '-'}`, size: 14 })] }),
-                      ],
-                      columnSpan: 2
-                  })
-              ]
-          }),
-          new TableRow({
-              children: [
-                  new TableCell({
-                      children: [
-                          new Paragraph({ children: [new TextRun({ text: 'Buyer (Bill To):', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: buyer?.name || '', bold: true, size: 16 })] }),
-                          new Paragraph({ children: [new TextRun({ text: buyer?.address || '', size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `GSTIN: ${buyerGst || 'N/A'}`, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `PAN: ${buyerPan || '-'}`, size: 14 })] }),
-                          new Paragraph({ children: [new TextRun({ text: `IEC: ${buyerIec || '-'}`, size: 14 })] }),
-                      ],
-                      columnSpan: 2
-                  })
-              ]
-          })
-      ],
-      width: { size: 100, type: WidthType.PERCENTAGE }
+  // --- TOP SECTION (Redesigned to match Commercial Invoice) ---
+  
+  // Left Side: Exporter & Dispatch
+  const exporterInfoCell = new TableCell({
+    children: [
+      makeParagraph('Exporter / Shipper', { bold: true, size: 22 }),
+      makeParagraph(safeText(exporter.name, ''), { bold: true, size: 20 }),
+      ...(exporter.address ? [makeParagraph(exporter.address, { size: 18 })] : []),
+      labelValueParagraph('GST: ', exporterGst, { labelSize: 18, valueSize: 18 }),
+      labelValueParagraph('PAN: ', exporterPan, { labelSize: 18, valueSize: 18 }),
+      labelValueParagraph('IEC: ', exporterIec, { labelSize: 18, valueSize: 18 })
+    ],
+    verticalAlign: VerticalAlign.TOP,
+    borders: DEFAULT_BORDERS
   });
+
+  const dispatchCell = new TableCell({
+    children: [labelValueParagraph('Dispatch From: ', dispatchFrom, { labelSize: 20, valueSize: 18 })],
+    verticalAlign: VerticalAlign.TOP,
+    borders: DEFAULT_BORDERS
+  });
+
+  const exporterTable = new Table({
+    rows: [
+      new TableRow({ children: [exporterInfoCell] }),
+      new TableRow({ children: [dispatchCell] })
+    ],
+    width: { size: 5040, type: WidthType.DXA }
+  });
+
+  // Right Side: Invoice Info & Shipping
+  const invoiceInfoTable = new Table({
+    rows: [
+      labelValueRow('Invoice No.:', invoiceData.invoiceNumber),
+      labelValueRow('Invoice Date:', formatDateDisplay(invoiceData.invoiceDate)),
+      labelValueRow('Exchange Rate:', `₹${exRate.toFixed(2)}`), // Added for Tax Invoice
+      labelValueRow('Terms of Payment:', invoiceData.termsOfPayment || '-'),
+      labelValueRow('Terms of Delivery:', formatDeliveryTerms(invoiceData.termsOfDelivery))
+    ],
+    width: { size: 5000, type: WidthType.DXA }
+  });
+
+  const shippingTable = new Table({
+    rows: [
+      labelValueRow('Pre-Carriage By:', invoiceData.preCarriageBy || '-'),
+      labelValueRow('Place of Receipt:', invoiceData.placeOfReceipt || '-'),
+      labelValueRow('Port of Loading:', invoiceData.portOfLoading || '-'),
+      labelValueRow('Port of Discharge:', invoiceData.portOfDischarge || '-'),
+      labelValueRow('Total Net Weight:', invoiceData.totalNetWeight ? `${invoiceData.totalNetWeight} KGS` : '-'),
+      labelValueRow('Total Gross Weight:', invoiceData.totalGrossWeight ? `${invoiceData.totalGrossWeight} KGS` : '-'),
+      labelValueRow('Total Packages:', invoiceData.numberOfPackages || '-')
+    ],
+    width: { size: 5000, type: WidthType.DXA }
+  });
+
+  const rightCellChildren = [
+    invoiceInfoTable,
+    new Paragraph({ text: '' }),
+    makeParagraph('Shipping & Logistics', { bold: true, size: 22 }),
+    shippingTable
+  ];
+
+  // Combined Top Table
+  const topTable = new Table({
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [exporterTable],
+            width: { size: 5040, type: WidthType.DXA },
+            verticalAlign: VerticalAlign.TOP,
+            borders: DEFAULT_BORDERS
+          }),
+          new TableCell({
+            children: rightCellChildren,
+            width: { size: 5040, type: WidthType.DXA },
+            verticalAlign: VerticalAlign.TOP,
+            borders: DEFAULT_BORDERS
+          })
+        ]
+      })
+    ],
+    width: { size: 10080, type: WidthType.DXA }
+  });
+
   sectionChildren.push(topTable);
   sectionChildren.push(new Paragraph({ text: '' }));
 
-  // Shipping & Logistics (Tax Invoice)
-  const shippingTable = new Table({
-      rows: [
-          labelValueRow('Dispatch From:', dispatchFrom, { labelSize: 18, valueSize: 18 }),
-          labelValueRow('Pre-Carriage By:', invoiceData.preCarriageBy || '-', { labelSize: 18, valueSize: 18 }),
-          labelValueRow('Place of Receipt:', invoiceData.placeOfReceipt || '-', { labelSize: 18, valueSize: 18 }),
-          labelValueRow('Port of Loading:', invoiceData.portOfLoading || '-', { labelSize: 18, valueSize: 18 }),
-          labelValueRow('Port of Discharge:', invoiceData.portOfDischarge || '-', { labelSize: 18, valueSize: 18 }),
-          labelValueRow('Total Net Weight:', invoiceData.totalNetWeight ? `${invoiceData.totalNetWeight} KGS` : '-', { labelSize: 18, valueSize: 18 }),
-          labelValueRow('Total Gross Weight:', invoiceData.totalGrossWeight ? `${invoiceData.totalGrossWeight} KGS` : '-', { labelSize: 18, valueSize: 18 }),
-          labelValueRow('Total Packages:', invoiceData.numberOfPackages || '-', { labelSize: 18, valueSize: 18 })
-      ],
-      width: { size: 10080, type: WidthType.DXA }
+  // --- PARTIES SECTION (Redesigned to match Commercial Invoice) ---
+  
+  const consigneeCellChildren = [
+    makeParagraph('Consignee (Ship To)', { bold: true, size: 22 }),
+    makeParagraph(safeText(consignee.name, ''), { bold: true, size: 20 }),
+    ...(consignee.address ? [makeParagraph(consignee.address, { size: 18 })] : []),
+    labelValueParagraph('GST: ', consigneeGst, { labelSize: 18, valueSize: 18 }),
+    labelValueParagraph('PAN: ', consigneePan, { labelSize: 18, valueSize: 18 }),
+    labelValueParagraph('IEC: ', consigneeIec, { labelSize: 18, valueSize: 18 })
+  ];
+
+  const buyerCellChildren = [
+    makeParagraph('Buyer (Bill To)', { bold: true, size: 22 }),
+    makeParagraph(safeText(buyer.name, ''), { bold: true, size: 20 }),
+    ...(buyer.address ? [makeParagraph(buyer.address, { size: 18 })] : []),
+    labelValueParagraph('GST: ', buyerGst, { labelSize: 18, valueSize: 18 }),
+    labelValueParagraph('PAN: ', buyerPan, { labelSize: 18, valueSize: 18 }),
+    labelValueParagraph('IEC: ', buyerIec, { labelSize: 18, valueSize: 18 })
+  ];
+
+  const partiesTable = new Table({
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({ children: consigneeCellChildren, width: { size: 5040, type: WidthType.DXA }, verticalAlign: VerticalAlign.TOP, borders: DEFAULT_BORDERS }),
+          new TableCell({ children: buyerCellChildren, width: { size: 5040, type: WidthType.DXA }, verticalAlign: VerticalAlign.TOP, borders: DEFAULT_BORDERS })
+        ]
+      })
+    ],
+    width: { size: 10080, type: WidthType.DXA }
   });
-  sectionChildren.push(shippingTable);
+
+  sectionChildren.push(partiesTable);
   sectionChildren.push(new Paragraph({ text: '' }));
 
   // Items Table Headers
@@ -590,13 +632,18 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
       const rateINR = rateUSD * exRate;
       const taxableValue = qty * rateINR;
 
-      // --- 2. IGST CALCULATION ---
+      // --- 2. IGST CALCULATION (Fixed) ---
       let igstRate = 0;
       // Clean IGST string (handles "!8%", "0.18", "18%")
-      let igstStr = String(item.igst || '0').replace(/[^0-9.]/g, ''); 
-      const igstRaw = parseFloat(igstStr);
+      let igstStr = String(item.igst || '').replace(/[^0-9.]/g, ''); 
+      let igstRaw = parseFloat(igstStr);
 
-      // Logic: If < 1 (e.g. 0.18), treat as decimal. If > 1 (e.g. 18), treat as percentage.
+      // FIX: If missing or 0, default to 18
+      if (isNaN(igstRaw) || igstRaw === 0) {
+        igstRaw = 18;
+      }
+
+      // Logic: If < 1 (e.g. 0.18), treat as decimal. If >= 1 (e.g. 18), treat as percentage.
       if (igstRaw > 0 && igstRaw < 1) igstRate = igstRaw * 100;
       else igstRate = igstRaw;
 
