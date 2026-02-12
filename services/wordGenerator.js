@@ -379,38 +379,36 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   const grandTotal = subtotalAmount + freightCharges + insuranceCharges;
   const symbol = currencySymbol(currencyLabel) || currencyLabel || '';
 
+  // --- UPDATED TOTALS TABLE (Commercial Invoice) ---
   const totalsTable = new Table({
     rows: [
       new TableRow({
         children: [
           cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
-          cell(symbol, AlignmentType.CENTER, 1, false, 18),
-          cell(subtotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), AlignmentType.RIGHT, 1, false, 18)
+          cell(`${symbol}${subtotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, false, 18)
         ]
       }),
       new TableRow({
         children: [
           cell('Freight', AlignmentType.RIGHT, 1, false, 18),
-          cell(symbol, AlignmentType.CENTER, 1, false, 18),
-          cell(freightCharges.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), AlignmentType.RIGHT, 1, false, 18)
+          cell(`${symbol}${freightCharges.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, false, 18)
         ]
       }),
       new TableRow({
         children: [
           cell('Insurance', AlignmentType.RIGHT, 1, false, 18),
-          cell(symbol, AlignmentType.CENTER, 1, false, 18),
-          cell(insuranceCharges.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), AlignmentType.RIGHT, 1, false, 18)
+          cell(`${symbol}${insuranceCharges.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, false, 18)
         ]
       }),
       new TableRow({
         children: [
           cell('TOTAL', AlignmentType.RIGHT, 1, true, 20),
-          cell(symbol, AlignmentType.CENTER, 1, true, 20),
-          cell(grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), AlignmentType.RIGHT, 1, true, 20)
+          cell(`${symbol}${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, true, 20)
         ]
       })
     ],
-    width: { size: 4896, type: WidthType.DXA },
+    // Aligned to RIGHT, same styling logic as main table, 2 columns
+    width: { size: 4896, type: WidthType.DXA }, 
     alignment: AlignmentType.RIGHT
   });
 
