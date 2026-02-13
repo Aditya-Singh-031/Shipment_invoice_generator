@@ -412,7 +412,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
     const rowShade = i % 2 === 1 ? 'F8F9FA' : null;
     rows.push(new TableRow({
       children: [
-        cell(String(i + 1), AlignmentType.CENTER, 1, false, 18, rowShade),
+        cell(String(i + 1), AlignmentType.CENTER, 1, false, 10, rowShade),
         cell(item.refNo || '', AlignmentType.CENTER, 1, false, 18, rowShade),
         cell(item.partNo || '', AlignmentType.CENTER, 1, false, 18, rowShade),
         cell(item.description, AlignmentType.LEFT, 1, false, 18, rowShade),
