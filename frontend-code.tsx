@@ -537,6 +537,18 @@ export default function ShipmentGeneratorPage() {
           <div className="space-y-2"><Label>Gross Wt (Kg)</Label><Input name="totalGrossWeight" value={formData.totalGrossWeight} onChange={handleInputChange} /></div>
           <div className="space-y-2"><Label>Freight</Label><Input name="freightCharges" value={formData.freightCharges} onChange={handleInputChange} /></div>
           <div className="space-y-2"><Label>Insurance</Label><Input name="insuranceCharges" value={formData.insuranceCharges} onChange={handleInputChange} /></div>
+          <div className="space-y-2">
+            <Label>Currency</Label>
+            <Select value={detectedCurrency} onValueChange={setDetectedCurrency}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="INR">INR (₹)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+                <SelectItem value="GBP">GBP (£)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="col-span-3 flex items-center gap-2 pt-8 pl-4">
             <Checkbox id="split" checked={formData.splitFobFreight} onCheckedChange={(c) => setFormData(p => ({ ...p, splitFobFreight: c }))} />
             <div><Label htmlFor="split">Split FOB Freight?</Label><p className="text-xs text-muted-foreground">PDF shows total only. Excel shows split details.</p></div>
@@ -556,7 +568,19 @@ export default function ShipmentGeneratorPage() {
           {uploadedItems.length > 0 && (
             <div className="mt-4 border rounded overflow-hidden max-h-60 overflow-auto">
               <Table>
-                <TableHeader><TableRow><TableHead>#</TableHead><TableHead>Ref</TableHead><TableHead>Part</TableHead><TableHead>Desc</TableHead><TableHead>Qty</TableHead><TableHead>Rate</TableHead><TableHead>Amt</TableHead></TableRow></TableHeader>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Ref</TableHead>
+                    <TableHead>Part</TableHead>
+                    <TableHead>Desc</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Rate</TableHead>
+                    <TableHead>Amt</TableHead>
+                    <TableHead>IGST</TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {uploadedItems.slice(0, 50).map((item, i) => (
                     <TableRow key={i}>
@@ -565,8 +589,10 @@ export default function ShipmentGeneratorPage() {
                       <TableCell>{item.partNo}</TableCell>
                       <TableCell className="max-w-[150px] truncate">{item.description}</TableCell>
                       <TableCell>{getMongoNum(item.qty)}</TableCell>
+                      <TableCell>{item.unit || ''}</TableCell>
                       <TableCell>{getMongoNum(item.rate)}</TableCell>
                       <TableCell>{(getMongoNum(item.amount) || 0).toFixed(2)}</TableCell>
+                      <TableCell>{item.igst || ''}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

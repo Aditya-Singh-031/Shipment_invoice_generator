@@ -34,6 +34,22 @@ function safeParseFloat(val) {
     return isNaN(num) ? 0 : num;
 }
 
+function normalizeHeaderKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function hasValue(value) {
+    return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function toBoolean(value) {
+    if (value === true || value === false) return value;
+    if (value === 1 || value === '1') return true;
+    if (value === 0 || value === '0') return false;
+    const normalized = String(value || '').toLowerCase().trim();
+    return normalized === 'true' || normalized === 'on' || normalized === 'yes';
+}
+
 function parseDateOnly(val) {
     if (!val) return new Date();
     if (val instanceof Date) return val;
@@ -153,27 +169,64 @@ app.post('/api/upload-excel', upload.single('excelFile'), (req, res) => {
         
         let currencyLabel = 'USD';
         const headers = Object.keys(rawRows[0] || {});
-        if (headers.some(h => h.toUpperCase().includes('INR') || h.includes('₹'))) currencyLabel = 'INR';
+        const headerText = headers.join(' ').toUpperCase();
+        if (headerText.includes('INR') || headerText.includes('₹') || headerText.includes('RS') || headerText.includes('RUPEE')) {
+            currencyLabel = 'INR';
+        } else if (headerText.includes('USD') || headerText.includes('$')) {
+            currencyLabel = 'USD';
+        }
+
+        // Check for a currency column or symbols in values
+        if (!currencyLabel || currencyLabel === 'USD') {
+            const sampleRows = rawRows.slice(0, 20);
+            for (const row of sampleRows) {
+                const normalizedRow = {};
+                Object.keys(row || {}).forEach(k => { normalizedRow[normalizeHeaderKey(k)] = row[k]; });
+                const currencyValue = normalizedRow.currency || normalizedRow.curr || '';
+                const combinedValues = Object.values(row || {}).join(' ').toUpperCase();
+                const currencySource = String(currencyValue || combinedValues);
+
+                if (currencySource.includes('INR') || currencySource.includes('₹') || currencySource.includes('RS') || currencySource.includes('RUPEE')) {
+                    currencyLabel = 'INR';
+                    break;
+                }
+                if (currencySource.includes('USD') || currencySource.includes('$')) {
+                    currencyLabel = 'USD';
+                    break;
+                }
+            }
+        }
 
         const items = rawRows.map(row => {
-            const desc = row['Description'] || row['Description of Goods'] || row['DESC'] || '';
-            const qty = safeParseFloat(row['Qty'] || row['Quantity'] || row['QTY']);
+            const normalizedRow = {};
+            Object.keys(row || {}).forEach(k => { normalizedRow[normalizeHeaderKey(k)] = row[k]; });
+
+            const getValue = (...keys) => {
+                for (const key of keys) {
+                    const val = normalizedRow[normalizeHeaderKey(key)];
+                    if (hasValue(val)) return val;
+                }
+                return '';
+            };
+
+            const desc = getValue('Description', 'Description of Goods', 'DESC');
+            const qty = safeParseFloat(getValue('Qty', 'Quantity', 'QTY'));
             
             // PRIORITY: 'WITH FOB RATE' (from your input file) -> then 'Rate' -> then 'Price'
-            const rate = safeParseFloat(row['WITH FOB RATE'] || row['Rate'] || row['Price'] || row['RATE']);
+            const rate = safeParseFloat(getValue('WITH FOB RATE', 'Rate', 'Price', 'RATE'));
             
             return {
                 description: desc,
-                hsn: row['HSN'] || row['HSN Code'] || '',
+                hsn: getValue('HSN', 'HSN Code'),
                 qty: qty,
                 rate: rate,
-                amount: safeParseFloat(row['TOTAL']) || (qty * rate),
-                partNo: row['Part number'] || row['Part No'] || '',
-                refNo: row['Order reference number'] || row['Ref No'] || '',
+                amount: safeParseFloat(getValue('TOTAL', 'Amount', 'Total Amount')) || (qty * rate),
+                partNo: getValue('Part number', 'Part No'),
+                refNo: getValue('Order reference number', 'Ref No', 'Reference', 'Reference No'),
                 
                 // NEW FIELDS FOR TAX INVOICE
-                unit: row['Unit'] || 'NOS', 
-                igst: row['IGST Rate'] || '0'
+                unit: getValue('Unit', 'UOM', 'Unit of Measure') || 'NOS', 
+                igst: getValue('IGST Rate', 'IGST%', 'IGST', 'GST Rate', 'Tax Rate') || '0'
             };
         }).filter(i => i.description || i.qty > 0);
 
@@ -285,7 +338,7 @@ app.post('/api/shipments/save', async (req, res) => {
             gross_weight_kg: safeParseFloat(body.totalGrossWeight),
             freight_cost: safeParseFloat(body.freightCharges),
             insurance_cost: safeParseFloat(body.insuranceCharges),
-            is_freight_in_split: String(body.splitFobFreight) === 'true',
+            is_freight_in_split: toBoolean(body.splitFobFreight),
             currency: body.currencyLabel || 'USD',
             status: 'Draft'
         };
@@ -321,7 +374,7 @@ app.post('/api/generate/working-excel', (req, res) => {
     try {
         const body = req.body;
         const lineItems = body.lineItems || [];
-        const splitFobFreight = String(body.splitFobFreight) === 'true';
+        const splitFobFreight = toBoolean(body.splitFobFreight);
         
         const freightVal = safeParseFloat(body.freightCharges);
         const insuranceVal = safeParseFloat(body.insuranceCharges);
@@ -454,6 +507,7 @@ app.post('/api/generate/invoice', async (req, res) => {
                 description: item.description, hsn: item.hsn, qty: safeParseFloat(item.qty), rate: safeParseFloat(item.rate),
                 amount: safeParseFloat(item.amount), partNo: item.partNo, refNo: item.refNo, idx: idx
             }));
+            const splitFobFreight = toBoolean(body.splitFobFreight) || body.downloadVariant === 'split';
             const invoiceData = {
                 exporter: CONSTANT_EXPORTER, buyer: body.buyer, consignee: body.consigneeSameAsBuyer ? body.buyer : body.consignee,
                 chaAgent: { name: body.chaAgent || '' }, invoiceNumber: body.invoiceNumber, invoiceDate: rawInvoiceDate, 
@@ -462,7 +516,7 @@ app.post('/api/generate/invoice', async (req, res) => {
                 portOfDischarge: body.portOfDischarge, termsOfDelivery: body.termsOfDelivery, numberOfPackages: body.numberOfPackages,
                 totalNetWeight: body.totalNetWeight, totalGrossWeight: body.totalGrossWeight, 
                 freightCharges: safeParseFloat(body.freightCharges), insuranceCharges: safeParseFloat(body.insuranceCharges),
-                splitFobFreight: String(body.splitFobFreight) === 'true'
+                splitFobFreight
             };
             buffer = await generateWordInvoice(invoiceData, processedItems, body.currencyLabel || 'USD');
             const typeLabel = invoiceData.splitFobFreight ? 'Split' : 'Commercial';

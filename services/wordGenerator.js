@@ -56,6 +56,16 @@ function safeText(value, fallback = '-') {
   return String(value);
 }
 
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function optionalLabelValueParagraphs(pairs, options) {
+  return pairs
+    .filter((pair) => hasValue(pair.value))
+    .map((pair) => labelValueParagraph(`${pair.label}: `, pair.value, options));
+}
+
 function pickCompanyField(company, keys) {
   if (!company) return '';
   for (const key of keys) {
@@ -222,14 +232,39 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   const dispatchFrom = getDispatchAddress(invoiceData);
 
+  const exporterIdRows = optionalLabelValueParagraphs(
+    [
+      { label: 'GST', value: exporterGst },
+      { label: 'PAN', value: exporterPan },
+      { label: 'IEC', value: exporterIec }
+    ],
+    { labelSize: 18, valueSize: 18 }
+  );
+
+  const buyerIdRows = optionalLabelValueParagraphs(
+    [
+      { label: 'GST', value: buyerGst },
+      { label: 'PAN', value: buyerPan },
+      { label: 'IEC', value: buyerIec }
+    ],
+    { labelSize: 18, valueSize: 18 }
+  );
+
+  const consigneeIdRows = optionalLabelValueParagraphs(
+    [
+      { label: 'GST', value: consigneeGst },
+      { label: 'PAN', value: consigneePan },
+      { label: 'IEC', value: consigneeIec }
+    ],
+    { labelSize: 18, valueSize: 18 }
+  );
+
   const exporterInfoCell = new TableCell({
     children: [
       makeParagraph('Exporter / Shipper', { bold: true, size: 22 }),
       makeParagraph(safeText(exporter.name, ''), { bold: true, size: 20 }),
       ...(exporter.address ? [makeParagraph(exporter.address, { size: 18 })] : []),
-      labelValueParagraph('GST: ', exporterGst, { labelSize: 18, valueSize: 18 }),
-      labelValueParagraph('PAN: ', exporterPan, { labelSize: 18, valueSize: 18 }),
-      labelValueParagraph('IEC: ', exporterIec, { labelSize: 18, valueSize: 18 })
+      ...exporterIdRows
     ],
     verticalAlign: VerticalAlign.TOP,
     borders: DEFAULT_BORDERS
@@ -309,18 +344,14 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
     makeParagraph('Consignee', { bold: true, size: 22 }),
     makeParagraph(safeText(consignee.name, ''), { bold: true, size: 20 }),
     ...(consignee.address ? [makeParagraph(consignee.address, { size: 18 })] : []),
-    labelValueParagraph('GST: ', consigneeGst, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('PAN: ', consigneePan, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('IEC: ', consigneeIec, { labelSize: 18, valueSize: 18 })
+    ...consigneeIdRows
   ];
 
   const buyerCellChildren = [
     makeParagraph('Buyer', { bold: true, size: 22 }),
     makeParagraph(safeText(buyer.name, ''), { bold: true, size: 20 }),
     ...(buyer.address ? [makeParagraph(buyer.address, { size: 18 })] : []),
-    labelValueParagraph('GST: ', buyerGst, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('PAN: ', buyerPan, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('IEC: ', buyerIec, { labelSize: 18, valueSize: 18 })
+    ...buyerIdRows
   ];
 
   const partiesTable = new Table({
@@ -348,7 +379,34 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   const rows = [headerRow];
   let subtotalAmount = 0;
 
-  lineItems.forEach((item, i) => {
+  const splitFobFreight = Boolean(invoiceData.splitFobFreight);
+  const baseFreightCharges = Number(invoiceData.freightCharges) || 0;
+  const baseInsuranceCharges = Number(invoiceData.insuranceCharges) || 0;
+  const splitExtraVal = splitFobFreight ? (baseFreightCharges + baseInsuranceCharges) : 0;
+  const baseTotal = lineItems.reduce((sum, item) => {
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.rate) || 0;
+    const baseAmount = Number(item.amount);
+    const amount = Number.isFinite(baseAmount) && baseAmount !== 0 ? baseAmount : qty * rate;
+    return sum + amount;
+  }, 0);
+
+  const adjustedItems = lineItems.map((item) => {
+    const qty = Number(item.qty) || 0;
+    const rate = Number(item.rate) || 0;
+    const baseAmount = Number(item.amount);
+    const amount = Number.isFinite(baseAmount) && baseAmount !== 0 ? baseAmount : qty * rate;
+
+    if (splitFobFreight && baseTotal > 0 && splitExtraVal > 0) {
+      const extraShare = (amount / baseTotal) * splitExtraVal;
+      const splitAmount = amount + extraShare;
+      const splitRate = qty > 0 ? splitAmount / qty : rate;
+      return { ...item, amount: splitAmount, rate: splitRate };
+    }
+    return { ...item, amount };
+  });
+
+  adjustedItems.forEach((item, i) => {
     const amount = Number(item.amount) || 0;
     subtotalAmount += amount;
     const rowShade = i % 2 === 1 ? 'F8F9FA' : null;
@@ -374,39 +432,48 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   sectionChildren.push(new Paragraph({ text: '' }));
 
-  const freightCharges = Number(invoiceData.freightCharges) || 0;
-  const insuranceCharges = Number(invoiceData.insuranceCharges) || 0;
+  const freightCharges = splitFobFreight ? 0 : baseFreightCharges;
+  const insuranceCharges = splitFobFreight ? 0 : baseInsuranceCharges;
   const grandTotal = subtotalAmount + freightCharges + insuranceCharges;
-  const symbol = currencySymbol(currencyLabel) || currencyLabel || '';
 
   // --- UPDATED TOTALS TABLE (Commercial Invoice) ---
-  const totalsTable = new Table({
-    rows: [
-      new TableRow({
-        children: [
-          cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
-          cell(`${symbol}${subtotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, false, 18)
-        ]
-      }),
+  const totalsRows = [
+    new TableRow({
+      children: [
+        cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
+        cell(formatMoney(subtotalAmount, currencyLabel), AlignmentType.CENTER, 1, false, 18)
+      ]
+    })
+  ];
+
+  if (!splitFobFreight) {
+    totalsRows.push(
       new TableRow({
         children: [
           cell('Freight', AlignmentType.RIGHT, 1, false, 18),
-          cell(`${symbol}${freightCharges.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, false, 18)
+          cell(formatMoney(freightCharges, currencyLabel), AlignmentType.CENTER, 1, false, 18)
         ]
       }),
       new TableRow({
         children: [
           cell('Insurance', AlignmentType.RIGHT, 1, false, 18),
-          cell(`${symbol}${insuranceCharges.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, false, 18)
-        ]
-      }),
-      new TableRow({
-        children: [
-          cell('TOTAL', AlignmentType.RIGHT, 1, true, 20),
-          cell(`${symbol}${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, AlignmentType.CENTER, 1, true, 20)
+          cell(formatMoney(insuranceCharges, currencyLabel), AlignmentType.CENTER, 1, false, 18)
         ]
       })
-    ],
+    );
+  }
+
+  totalsRows.push(
+    new TableRow({
+      children: [
+        cell('TOTAL', AlignmentType.RIGHT, 1, true, 20),
+        cell(formatMoney(grandTotal, currencyLabel), AlignmentType.CENTER, 1, true, 20)
+      ]
+    })
+  );
+
+  const totalsTable = new Table({
+    rows: totalsRows,
     // Aligned to RIGHT, same styling logic as main table, 2 columns
     width: { size: 4896, type: WidthType.DXA }, 
     alignment: AlignmentType.RIGHT
@@ -487,6 +554,32 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   const dispatchFrom = getDispatchAddress(invoiceData);
 
   // --- TOP SECTION (Redesigned to match Commercial Invoice) ---
+  const exporterIdRows = optionalLabelValueParagraphs(
+    [
+      { label: 'GST', value: exporterGst },
+      { label: 'PAN', value: exporterPan },
+      { label: 'IEC', value: exporterIec }
+    ],
+    { labelSize: 18, valueSize: 18 }
+  );
+
+  const buyerIdRows = optionalLabelValueParagraphs(
+    [
+      { label: 'GST', value: buyerGst },
+      { label: 'PAN', value: buyerPan },
+      { label: 'IEC', value: buyerIec }
+    ],
+    { labelSize: 18, valueSize: 18 }
+  );
+
+  const consigneeIdRows = optionalLabelValueParagraphs(
+    [
+      { label: 'GST', value: consigneeGst },
+      { label: 'PAN', value: consigneePan },
+      { label: 'IEC', value: consigneeIec }
+    ],
+    { labelSize: 18, valueSize: 18 }
+  );
   
   // Left Side: Exporter & Dispatch
   const exporterInfoCell = new TableCell({
@@ -494,9 +587,7 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
       makeParagraph('Exporter / Shipper', { bold: true, size: 22 }),
       makeParagraph(safeText(exporter.name, ''), { bold: true, size: 20 }),
       ...(exporter.address ? [makeParagraph(exporter.address, { size: 18 })] : []),
-      labelValueParagraph('GST: ', exporterGst, { labelSize: 18, valueSize: 18 }),
-      labelValueParagraph('PAN: ', exporterPan, { labelSize: 18, valueSize: 18 }),
-      labelValueParagraph('IEC: ', exporterIec, { labelSize: 18, valueSize: 18 })
+      ...exporterIdRows
     ],
     verticalAlign: VerticalAlign.TOP,
     borders: DEFAULT_BORDERS
@@ -580,18 +671,14 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
     makeParagraph('Consignee (Ship To)', { bold: true, size: 22 }),
     makeParagraph(safeText(consignee.name, ''), { bold: true, size: 20 }),
     ...(consignee.address ? [makeParagraph(consignee.address, { size: 18 })] : []),
-    labelValueParagraph('GST: ', consigneeGst, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('PAN: ', consigneePan, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('IEC: ', consigneeIec, { labelSize: 18, valueSize: 18 })
+    ...consigneeIdRows
   ];
 
   const buyerCellChildren = [
     makeParagraph('Buyer (Bill To)', { bold: true, size: 22 }),
     makeParagraph(safeText(buyer.name, ''), { bold: true, size: 20 }),
     ...(buyer.address ? [makeParagraph(buyer.address, { size: 18 })] : []),
-    labelValueParagraph('GST: ', buyerGst, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('PAN: ', buyerPan, { labelSize: 18, valueSize: 18 }),
-    labelValueParagraph('IEC: ', buyerIec, { labelSize: 18, valueSize: 18 })
+    ...buyerIdRows
   ];
 
   const partiesTable = new Table({
