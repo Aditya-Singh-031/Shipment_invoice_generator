@@ -376,7 +376,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   // Items Table
   const headers = ['Sr', 'Ref No', 'Part No', 'Description of Goods', 'HSN/SAC', 'Qty', 'Rate', 'Amount'];
-  const colWidths = [500, 1700, 1200, 3300, 900, 500, 1000, 980];
+  const colWidths = [500, 2100, 1200, 2500, 900, 700, 900, 1200];
   const headerRow = new TableRow({
     tableHeader: true,
     children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000', colWidths[idx]))
@@ -419,9 +419,9 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
     rows.push(new TableRow({
       children: [
         cell(String(i + 1), AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[0]),
-        cell(item.refNo || '', AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[1]),
+        cell(item.refNo || '', AlignmentType.CENTER, 1, false, 15, rowShade, "000000", colWidths[1]),
         cell(item.partNo || '', AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[2]),
-        cell(item.description, AlignmentType.LEFT, 1, false, 18, rowShade, "000000", colWidths[3]),
+        cell(item.description, AlignmentType.LEFT, 1, false, 14, rowShade, "000000", colWidths[3]),
         cell(item.hsn, AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[4]),
         cell(item.qty !== undefined && item.qty !== null ? String(item.qty) : '', AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[5]),
         cell(formatMoney(item.rate, currencyLabel), AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[6]),
