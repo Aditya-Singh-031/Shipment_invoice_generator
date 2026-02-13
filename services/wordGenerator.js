@@ -376,7 +376,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   // Items Table
   const headers = ['Sr', 'Ref No', 'Part No', 'Description of Goods', 'HSN/SAC', 'Qty', 'Rate', 'Amount'];
-  const colWidths = [500, 2100, 1200, 2500, 900, 700, 900, 1200];
+  const colWidths = [500, 2100, 1200, 2500, 1000, 700, 900, 1200];
   const headerRow = new TableRow({
     tableHeader: true,
     children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000', colWidths[idx]))
