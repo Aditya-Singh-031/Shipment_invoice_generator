@@ -433,7 +433,8 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   sectionChildren.push(new Table({
     rows,
     width: { size: 10080, type: WidthType.DXA },
-    layout: TableLayoutType.FIXED
+    layout: TableLayoutType.FIXED,
+    columnWidths: colWidths
   }));
 
   sectionChildren.push(new Paragraph({ text: '' }));
@@ -779,7 +780,8 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   const itemsTable = new Table({
       rows: rows,
       width: { size: 100, type: WidthType.PERCENTAGE },
-      layout: TableLayoutType.FIXED
+      layout: TableLayoutType.FIXED,
+      columnWidths: taxColWidths
   });
 
   sectionChildren.push(itemsTable);
