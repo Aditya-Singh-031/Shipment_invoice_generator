@@ -29,7 +29,8 @@ function cell(
   bold = false,
   fontSize = 14,
   shading = null,
-  color = "000000"
+  color = "000000",
+  width = null
 ) {
   const cellProps = {
     children: [
@@ -43,6 +44,10 @@ function cell(
     verticalAlign: VerticalAlign.CENTER,
     borders: DEFAULT_BORDERS
   };
+
+  if (width) {
+    cellProps.width = { size: width, type: WidthType.DXA };
+  }
 
   if (shading) {
     cellProps.shading = { fill: shading, type: ShadingType.SOLID };
@@ -371,9 +376,10 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   // Items Table
   const headers = ['Sr', 'Ref No', 'Part No', 'Description of Goods', 'HSN/SAC', 'Qty', 'Rate', 'Amount'];
+  const colWidths = [500, 1700, 1200, 3300, 900, 500, 1000, 980];
   const headerRow = new TableRow({
     tableHeader: true,
-    children: headers.map(h => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000'))
+    children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000', colWidths[idx]))
   });
 
   const rows = [headerRow];
@@ -412,14 +418,14 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
     const rowShade = i % 2 === 1 ? 'F8F9FA' : null;
     rows.push(new TableRow({
       children: [
-        cell(String(i + 1), AlignmentType.CENTER, 1, false, 10, rowShade),
-        cell(item.refNo || '', AlignmentType.CENTER, 1, false, 18, rowShade),
-        cell(item.partNo || '', AlignmentType.CENTER, 1, false, 18, rowShade),
-        cell(item.description, AlignmentType.LEFT, 1, false, 18, rowShade),
-        cell(item.hsn, AlignmentType.CENTER, 1, false, 18, rowShade),
-        cell(item.qty !== undefined && item.qty !== null ? String(item.qty) : '', AlignmentType.CENTER, 1, false, 18, rowShade),
-        cell(formatMoney(item.rate, currencyLabel), AlignmentType.CENTER, 1, false, 18, rowShade),
-        cell(formatMoney(amount, currencyLabel), AlignmentType.CENTER, 1, false, 18, rowShade),
+        cell(String(i + 1), AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[0]),
+        cell(item.refNo || '', AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[1]),
+        cell(item.partNo || '', AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[2]),
+        cell(item.description, AlignmentType.LEFT, 1, false, 18, rowShade, "000000", colWidths[3]),
+        cell(item.hsn, AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[4]),
+        cell(item.qty !== undefined && item.qty !== null ? String(item.qty) : '', AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[5]),
+        cell(formatMoney(item.rate, currencyLabel), AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[6]),
+        cell(formatMoney(amount, currencyLabel), AlignmentType.CENTER, 1, false, 18, rowShade, "000000", colWidths[7]),
       ]
     }));
   });
@@ -427,7 +433,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   sectionChildren.push(new Table({
     rows,
     width: { size: 10080, type: WidthType.DXA },
-    layout: TableLayoutType.AUTOFIT
+    layout: TableLayoutType.FIXED
   }));
 
   sectionChildren.push(new Paragraph({ text: '' }));
@@ -698,9 +704,10 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
 
   // Items Table Headers
   const headers = ['Sr', 'Description', 'HSN', 'Qty', 'Unit', 'Rate($)', 'Rate(₹)', 'Taxable(₹)', 'IGST%', 'IGST Amt', 'Total(₹)'];
+  const taxColWidths = [500, 2480, 900, 500, 700, 850, 850, 900, 600, 900, 900];
   const headerRow = new TableRow({
       tableHeader: true,
-      children: headers.map(h => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0', '000000'))
+      children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0', '000000', taxColWidths[idx]))
   });
 
   const rows = [headerRow];
@@ -743,17 +750,17 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
       // Add Row
       rows.push(new TableRow({
           children: [
-              cell(String(idx + 1)),
-              cell(item.description, AlignmentType.LEFT),
-              cell(item.hsn),
-              cell(String(qty)),
-              cell(item.unit || 'NOS'), // Unit from Excel
-              cell(rateUSD.toFixed(2)),
-              cell(rateINR.toFixed(2)),
-              cell(taxableValue.toFixed(2)),
-              cell(`${igstRate}%`),
-              cell(igstAmount.toFixed(2)),
-              cell(totalRowINR.toFixed(2)),
+              cell(String(idx + 1), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[0]),
+              cell(item.description, AlignmentType.LEFT, 1, false, 14, null, "000000", taxColWidths[1]),
+              cell(item.hsn, AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[2]),
+              cell(String(qty), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[3]),
+              cell(item.unit || 'NOS', AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[4]), // Unit from Excel
+              cell(rateUSD.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[5]),
+              cell(rateINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[6]),
+              cell(taxableValue.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[7]),
+              cell(`${igstRate}%`, AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[8]),
+              cell(igstAmount.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[9]),
+              cell(totalRowINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[10]),
           ]
       }));
   });
@@ -772,7 +779,7 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   const itemsTable = new Table({
       rows: rows,
       width: { size: 100, type: WidthType.PERCENTAGE },
-      layout: TableLayoutType.AUTOFIT
+      layout: TableLayoutType.FIXED
   });
 
   sectionChildren.push(itemsTable);
