@@ -77,17 +77,21 @@ const createOrder = async (data) => {
         });
 
         // --- Create OrderDetails ---
+        console.log('[createOrder] Creating OpsOrderDetail with', processedItems.length, 'items for order', order._id);
         const orderDetail = await OpsOrderDetail.create({
             order_id: order._id,
             items: processedItems
         });
+        console.log('[createOrder] OpsOrderDetail created:', orderDetail._id, 'items saved:', orderDetail.items?.length);
 
         // --- Link order_details_id ---
         order.order_details_id = orderDetail._id;
         await order.save();
+        console.log('[createOrder] Order linked. order_details_id =', order.order_details_id);
 
         return { order: order.toObject(), orderDetail: orderDetail.toObject() };
     } catch (err) {
+        console.error('[createOrder] ERROR:', err.message, err.stack);
         throw err;
     }
 };
@@ -101,6 +105,9 @@ const getOrderById = async (id) => {
         .populate('consignee_id')
         .populate('order_details_id')
         .lean();
+    if (order) {
+        console.log('[getOrderById]', id, '→ order_details_id:', order.order_details_id?._id || order.order_details_id, 'items:', order.order_details_id?.items?.length || 0);
+    }
     return order;
 };
 

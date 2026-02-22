@@ -8,8 +8,13 @@ const { generatePIWord } = require('../../../services/wordGenerator');
 const { convertToPdf } = require('../utils/pdfConverter');
 
 const create = async (req, res) => {
+    console.log('[create controller] req.body items count:', req.body?.items?.length);
     const { error, value } = createOrderSchema.validate(req.body, { abortEarly: false });
-    if (error) return sendError(res, error.details.map(d => d.message).join(', '), 400);
+    if (error) {
+        console.log('[create controller] Validation errors:', error.details.map(d => d.message));
+        return sendError(res, error.details.map(d => d.message).join(', '), 400);
+    }
+    console.log('[create controller] Validated items count:', value.items?.length);
 
     const result = await orderService.createOrder(value);
     return sendSuccess(res, result, 201);
