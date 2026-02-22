@@ -13,11 +13,8 @@ const { resolveBankAccount } = require('../utils/bankAccounts');
  * Resolves bank_account_key to full bank details from hardcoded constants.
  */
 const createOrder = async (data) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-        const orderNumber = await generateOrderNumber(session);
+        const orderNumber = await generateOrderNumber();
 
         // --- Process items: use user-provided brand, rate, igst ---
         const processedItems = [];
@@ -80,20 +77,17 @@ const createOrder = async (data) => {
             subtotal,
             tax_total: taxTotal,
             grand_total: grandTotal
-        }], { session });
+        }]);
 
         // --- Create OrderDetails ---
         const [orderDetail] = await OpsOrderDetail.create([{
             order_id: order._id,
             items: processedItems
-        }], { session });
+        }]);
 
         // --- Link order_details_id ---
         order.order_details_id = orderDetail._id;
-        await order.save({ session });
-
-        await session.commitTransaction();
-        session.endSession();
+        await order.save();
 
         return { order: order.toObject(), orderDetail: orderDetail.toObject() };
     } catch (err) {
@@ -198,36 +192,22 @@ const updateStatus = async (id, status) => {
  * Soft-delete an order and its order details.
  */
 const deleteOrder = async (id) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
         const order = await OpsOrder.findOneAndUpdate(
             { _id: id, is_deleted: false },
             { $set: { is_deleted: true } },
-            { new: true, session }
+            { new: true }
         ).lean();
-
-        if (!order) {
-            await session.abortTransaction();
-            session.endSession();
-            return null;
-        }
 
         if (order.order_details_id) {
             await OpsOrderDetail.findOneAndUpdate(
                 { _id: order.order_details_id },
-                { $set: { is_deleted: true } },
-                { session }
+                { $set: { is_deleted: true } }
             );
         }
 
-        await session.commitTransaction();
-        session.endSession();
         return order;
     } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
         throw err;
     }
 };
