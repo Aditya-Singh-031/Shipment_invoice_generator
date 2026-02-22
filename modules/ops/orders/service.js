@@ -7,7 +7,7 @@ const generateOrderNumber = require('../utils/generateOrderNumber');
 const { resolveBankAccount } = require('../utils/bankAccounts');
 
 /**
- * Create an order with items inside a mongoose transaction.
+ * Create an order with items without a mongoose transaction (standalone support).
  *
  * No product-master lookup — uses the sell rate provided by the user.
  * Resolves bank_account_key to full bank details from hardcoded constants.
@@ -70,7 +70,7 @@ const createOrder = async (data) => {
             payment_terms: data.payment_terms || undefined,
             delivery_terms: data.delivery_terms || undefined,
             bank_account_key: data.bank_account_key || '',
-            bank_account_info: bankInfo || undefined,
+            bank_account_info: data.bank_account_key ? resolveBankAccount(data.bank_account_key) : undefined,
             subtotal,
             tax_total: taxTotal,
             grand_total: grandTotal
