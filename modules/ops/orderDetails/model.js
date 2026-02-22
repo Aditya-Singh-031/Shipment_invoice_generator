@@ -23,14 +23,13 @@ const OrderItemSchema = new Schema({
  * Custom validator: quantity must equal the sum of filled + pending + cancelled.
  * Only enforced when all sub-quantities are explicitly provided.
  */
-OrderItemSchema.pre('validate', function (next) {
+OrderItemSchema.pre('validate', function () {
     const sum = (this.quantity_filled || 0) + (this.quantity_pending || 0) + (this.quantity_cancelled || 0);
     if (sum > 0 && this.quantity !== sum) {
-        return next(new Error(
+        throw new Error(
             `Quantity mismatch for ${this.part_number}: quantity (${this.quantity}) must equal quantity_filled (${this.quantity_filled}) + quantity_pending (${this.quantity_pending}) + quantity_cancelled (${this.quantity_cancelled}) = ${sum}`
-        ));
+        );
     }
-    next();
 });
 
 const OpsOrderDetailSchema = new Schema({
