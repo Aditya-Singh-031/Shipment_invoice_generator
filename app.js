@@ -638,3 +638,12 @@ app.post('/api/upload-image', upload.single('imageFile'), async (req, res) => {
 app.use('/api/v1/ops', require('./modules/ops'));
 
 // --- 7. STARTUP REMOVED HERE (Now inside mongoose.connect) ---
+
+// --- 8. GLOBAL ERROR HANDLER ---
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(err.status || 500).json({
+        success: false,
+        error: err.message || 'Internal Server Error'
+    });
+});
