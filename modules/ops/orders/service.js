@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const OpsOrder = require('./model');
 const OpsOrderDetail = require('../orderDetails/model');
+const OpsProduct = require('../products/model');
 const generateOrderNumber = require('../utils/generateOrderNumber');
 const { resolveBankAccount } = require('../utils/bankAccounts');
 
@@ -88,6 +89,13 @@ const createOrder = async (data) => {
         order.order_details_id = orderDetail._id;
         await order.save();
         console.log('[createOrder] Order linked. order_details_id =', order.order_details_id);
+
+        // Sync to Product Master if confirmed on creation
+        if (data.status === 'CONFIRMED') {
+            try { await syncProductMaster(order._id); } catch (err) {
+                console.error('[syncProductMaster] Error on create:', err.message);
+            }
+        }
 
         return { order: order.toObject(), orderDetail: orderDetail.toObject() };
     } catch (err) {
@@ -237,6 +245,37 @@ const updateOrder = async (id, data, items) => {
 };
 
 /**
+ * Sync order line items to Product Master on confirm.
+ * Upserts by part_number. Does NOT overwrite rate (PI rate ≠ PM rate).
+ */
+async function syncProductMaster(orderId) {
+    const order = await OpsOrder.findById(orderId).populate('order_details_id');
+    if (!order || !order.order_details_id) return;
+
+    const items = order.order_details_id.items || [];
+    for (const item of items) {
+        if (!item.part_number) continue;
+        await OpsProduct.findOneAndUpdate(
+            { part_number: item.part_number },
+            {
+                $set: {
+                    brand: item.brand || undefined,
+                    description: item.description || undefined,
+                    igst_rate: item.igst_rate ?? 18,
+                },
+                $setOnInsert: {
+                    part_number: item.part_number,
+                    rate: 0,       // PI rate ≠ PM rate — user sets this manually
+                    hsn_code: '',
+                }
+            },
+            { upsert: true, new: true }
+        );
+    }
+    console.log('[syncProductMaster] Synced', items.length, 'items for order', orderId);
+}
+
+/**
  * Update order status.
  */
 const updateStatus = async (id, status) => {
@@ -245,6 +284,14 @@ const updateStatus = async (id, status) => {
         { $set: { status } },
         { new: true, runValidators: true }
     ).lean();
+
+    // Sync to Product Master when confirmed
+    if (order && status === 'CONFIRMED') {
+        try { await syncProductMaster(id); } catch (err) {
+            console.error('[syncProductMaster] Error:', err.message);
+        }
+    }
+
     return order;
 };
 
