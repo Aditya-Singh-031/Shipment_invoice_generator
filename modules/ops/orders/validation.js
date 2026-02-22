@@ -29,8 +29,8 @@ const createOrderSchema = Joi.object({
     status: Joi.string().valid(...ORDER_STATUSES),
     items: Joi.array().items(orderItemInput).min(1).required(),
     // PI fields
-    pi_number: Joi.string().allow('', null).trim(),
-    pi_date: Joi.date().allow(null),
+    pi_number: Joi.string().required().trim(),
+    pi_date: Joi.date().required(),
     payment_terms: Joi.string().allow('', null),
     delivery_terms: Joi.string().valid('FOB', 'EXW', 'CFR', 'CIF', '').allow('', null),
     bank_account_key: Joi.string().valid('HDFC', 'SBERBANK', '').allow('', null)

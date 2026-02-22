@@ -6,7 +6,7 @@ const addressSchema = Joi.object({
     address_lines: Joi.string().allow('', null),
     city: Joi.string().allow('', null),
     state: Joi.string().allow('', null),
-    country: Joi.string().allow('', null),
+    country: Joi.string().required().trim(),
     pincode: Joi.string().allow('', null)
 });
 
@@ -18,8 +18,8 @@ const contactSchema = Joi.object({
 
 const createBuyerSchema = Joi.object({
     cust_name: Joi.string().required().trim(),
-    cust_id: Joi.string().allow('', null).trim(),
-    address: addressSchema,
+    cust_id: Joi.string().required().trim(),
+    address: addressSchema.required(),
     contact: contactSchema,
     payment_terms: Joi.string().allow('', null),
     currency: Joi.string().valid('INR', 'USD', 'EUR', 'GBP')

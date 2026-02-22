@@ -11,7 +11,7 @@ const OpsBuyerSchema = new Schema({
         address_lines: { type: String, trim: true },
         city: { type: String, trim: true },
         state: { type: String, trim: true },
-        country: { type: String, trim: true },
+        country: { type: String, required: true, trim: true },
         pincode: { type: String, trim: true }
     },
 
