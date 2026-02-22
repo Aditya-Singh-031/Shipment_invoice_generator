@@ -5,11 +5,9 @@ const OpsOrderDetail = require('./model');
 /**
  * Create an order detail document.
  * @param {Object} data
- * @param {import('mongoose').ClientSession} [session]
  */
-const createOrderDetail = async (data, session) => {
-    const opts = session ? { session } : {};
-    const [detail] = await OpsOrderDetail.create([data], opts);
+const createOrderDetail = async (data) => {
+    const [detail] = await OpsOrderDetail.create([data]);
     return detail;
 };
 
@@ -37,16 +35,12 @@ const getById = async (id) => {
  * Update order detail items.
  * @param {string} id
  * @param {Object} data
- * @param {import('mongoose').ClientSession} [session]
  */
-const updateOrderDetail = async (id, data, session) => {
-    const opts = { new: true, runValidators: true };
-    if (session) opts.session = session;
-
+const updateOrderDetail = async (id, data) => {
     const detail = await OpsOrderDetail.findOneAndUpdate(
         { _id: id, is_deleted: false },
         { $set: data },
-        opts
+        { new: true, runValidators: true }
     ).lean();
     return detail;
 };

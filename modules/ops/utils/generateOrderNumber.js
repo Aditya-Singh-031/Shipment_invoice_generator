@@ -16,15 +16,13 @@ const Counter = mongoose.model('OpsCounter', CounterSchema, 'ops_counters');
  * Generates an order number in the format ORD-YYYY-XXXX.
  * Uses an atomic findOneAndUpdate to guarantee uniqueness under concurrency.
  *
- * @param {import('mongoose').ClientSession} [session] - Optional mongoose session for transactions
  * @returns {Promise<string>} e.g. "ORD-2026-0001"
  */
-const generateOrderNumber = async (session) => {
+const generateOrderNumber = async () => {
     const year = new Date().getFullYear();
     const counterId = `order_number_${year}`;
 
     const opts = { new: true, upsert: true };
-    if (session) opts.session = session;
 
     const counter = await Counter.findOneAndUpdate(
         { _id: counterId },
