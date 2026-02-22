@@ -18,7 +18,7 @@ const contactSchema = Joi.object({
 
 const createBuyerSchema = Joi.object({
     cust_name: Joi.string().required().trim(),
-    cust_id: Joi.string().required().trim(),
+    cust_id: Joi.string().allow('', null).trim(),
     address: addressSchema,
     contact: contactSchema,
     payment_terms: Joi.string().allow('', null),

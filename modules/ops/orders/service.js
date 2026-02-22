@@ -110,7 +110,10 @@ const getOrderById = async (id) => {
 const listOrders = async ({ page = 1, limit = 20, status, dateFrom, dateTo, buyer_id, search }) => {
     const query = { is_deleted: false };
 
-    if (status) query.status = status;
+    if (status) {
+        const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+        query.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
+    }
     if (buyer_id) query.buyer_id = buyer_id;
 
     if (dateFrom || dateTo) {

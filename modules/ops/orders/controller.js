@@ -2,7 +2,6 @@
 
 const orderService = require('./service');
 const { createOrderSchema, updateOrderSchema, updateStatusSchema } = require('./validation');
-const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../utils/response');
 const { generatePIExcel } = require('../utils/generatePIExcel');
 const { generatePIWord } = require('../../../services/wordGenerator');
@@ -146,15 +145,5 @@ const uploadExcel = async (req, res) => {
     }
 };
 
-module.exports = {
-    create: asyncHandler(create),
-    getById: asyncHandler(getById),
-    list: asyncHandler(list),
-    update: asyncHandler(update),
-    updateStatus: asyncHandler(updateStatus),
-    remove: asyncHandler(remove),
-    downloadExcel: asyncHandler(downloadExcel),
-    downloadPdf: asyncHandler(downloadPdf),
-    uploadExcel: asyncHandler(uploadExcel)
-};
+module.exports = { create, getById, list, update, updateStatus, remove, downloadExcel, downloadPdf, uploadExcel };
 
