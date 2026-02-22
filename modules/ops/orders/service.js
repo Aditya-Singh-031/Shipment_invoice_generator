@@ -158,19 +158,74 @@ const listOrders = async ({ page = 1, limit = 20, status, dateFrom, dateTo, buye
 };
 
 /**
- * Update order fields.
+ * Update order fields and optionally its items.
  */
-const updateOrder = async (id, data) => {
+const updateOrder = async (id, data, items) => {
     // Resolve bank if key changed
     if (data.bank_account_key) {
         const bankInfo = resolveBankAccount(data.bank_account_key);
         if (bankInfo) data.bank_account_info = bankInfo;
     }
+
+    // If items are provided, recalculate totals and update order detail
+    if (items && items.length > 0) {
+        let subtotal = 0;
+        let taxTotal = 0;
+        const processedItems = [];
+
+        for (const item of items) {
+            const quantity = Number(item.quantity) || 0;
+            const rate = Number(item.rate) || 0;
+            const igstRate = Number(item.igst_rate) || 0;
+            const quantityFilled = Number(item.quantity_filled) || 0;
+            const quantityCancelled = Number(item.quantity_cancelled) || 0;
+            const quantityPending = item.quantity_pending != null
+                ? Number(item.quantity_pending)
+                : quantity - quantityFilled - quantityCancelled;
+
+            const taxableValue = quantity * rate;
+            const taxAmount = taxableValue * (igstRate / 100);
+
+            subtotal += taxableValue;
+            taxTotal += taxAmount;
+
+            processedItems.push({
+                brand: item.brand || '',
+                part_number: item.part_number,
+                description: item.description || '',
+                quantity, quantity_filled: quantityFilled,
+                quantity_pending: quantityPending,
+                quantity_cancelled: quantityCancelled,
+                rate, igst_rate: igstRate,
+                taxable_value: taxableValue,
+                tax_amount: taxAmount,
+                total_amount: taxableValue + taxAmount
+            });
+        }
+
+        data.subtotal = subtotal;
+        data.tax_total = taxTotal;
+        data.grand_total = subtotal + taxTotal;
+
+        // Update the order detail document
+        const existingOrder = await OpsOrder.findOne({ _id: id, is_deleted: false });
+        if (existingOrder && existingOrder.order_details_id) {
+            await OpsOrderDetail.findByIdAndUpdate(
+                existingOrder.order_details_id,
+                { $set: { items: processedItems } }
+            );
+        }
+    }
+
     const order = await OpsOrder.findOneAndUpdate(
         { _id: id, is_deleted: false },
         { $set: data },
         { new: true, runValidators: true }
-    ).lean();
+    )
+        .populate('buyer_id')
+        .populate('consignee_id')
+        .populate('order_details_id')
+        .lean();
     return order;
 };
 

@@ -31,7 +31,8 @@ const update = async (req, res) => {
     const { error, value } = updateOrderSchema.validate(req.body, { abortEarly: false });
     if (error) return sendError(res, error.details.map(d => d.message).join(', '), 400);
 
-    const order = await orderService.updateOrder(req.params.id, value);
+    const { items, ...orderFields } = value;
+    const order = await orderService.updateOrder(req.params.id, orderFields, items);
     if (!order) return sendError(res, 'Order not found', 404);
     return sendSuccess(res, { order });
 };

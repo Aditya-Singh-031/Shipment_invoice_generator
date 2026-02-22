@@ -47,7 +47,8 @@ const updateOrderSchema = Joi.object({
     pi_date: Joi.date().allow(null),
     payment_terms: Joi.string().allow('', null),
     delivery_terms: Joi.string().valid('FOB', 'EXW', 'CFR', 'CIF', '').allow('', null),
-    bank_account_key: Joi.string().valid('HDFC', 'SBERBANK', '').allow('', null)
+    bank_account_key: Joi.string().valid('HDFC', 'SBERBANK', '').allow('', null),
+    items: Joi.array().items(orderItemInput).min(1)
 }).min(1);
 
 const updateStatusSchema = Joi.object({
