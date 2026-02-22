@@ -56,11 +56,8 @@ const createOrder = async (data) => {
 
         const grandTotal = subtotal + taxTotal;
 
-        // Resolve bank account
-        const bankInfo = resolveBankAccount(data.bank_account_key);
-
         // --- Create Order ---
-        const [order] = await OpsOrder.create([{
+        const order = await OpsOrder.create({
             buyer_id: data.buyer_id,
             consignee_id: data.consignee_id || undefined,
             order_number: orderNumber,
@@ -77,13 +74,13 @@ const createOrder = async (data) => {
             subtotal,
             tax_total: taxTotal,
             grand_total: grandTotal
-        }]);
+        });
 
         // --- Create OrderDetails ---
-        const [orderDetail] = await OpsOrderDetail.create([{
+        const orderDetail = await OpsOrderDetail.create({
             order_id: order._id,
             items: processedItems
-        }]);
+        });
 
         // --- Link order_details_id ---
         order.order_details_id = orderDetail._id;

@@ -7,7 +7,7 @@ const OpsOrderDetail = require('./model');
  * @param {Object} data
  */
 const createOrderDetail = async (data) => {
-    const [detail] = await OpsOrderDetail.create([data]);
+    const detail = await OpsOrderDetail.create(data);
     return detail;
 };
 
