@@ -91,8 +91,6 @@ const createOrder = async (data) => {
 
         return { order: order.toObject(), orderDetail: orderDetail.toObject() };
     } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
         throw err;
     }
 };
