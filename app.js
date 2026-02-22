@@ -7,14 +7,14 @@ const xlsx = require('xlsx');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcryptjs'); 
-const jwt = require('jsonwebtoken'); 
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 // IMPORT generateTaxInvoiceWord HERE// ... existing imports ...
 const { uploadToAzure } = require('./services/azureService'); // <--- Import this
 const { generateDocument } = require('./services/documentService');
 const { generateWordInvoice, generateTaxInvoiceWord } = require('./services/wordGenerator');
 const libre = require('libreoffice-convert');
-const archiver = require('archiver'); 
+const archiver = require('archiver');
 
 // --- 1. CONFIG & HELPER FIXES ---
 
@@ -57,7 +57,7 @@ function parseDateOnly(val) {
     // Handle "YYYY-MM-DD" explicitly to avoid UTC shifts
     const ymdMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
     if (ymdMatch) {
-        return new Date(Number(ymdMatch[1]), Number(ymdMatch[2]) - 1, Number(ymdMatch[3])); 
+        return new Date(Number(ymdMatch[1]), Number(ymdMatch[2]) - 1, Number(ymdMatch[3]));
     }
     const d = new Date(str);
     return isNaN(d.getTime()) ? new Date() : d;
@@ -71,7 +71,7 @@ function sanitizeFilename(name) {
 // --- 2. MODELS ---
 const Buyer = require('./models/Buyer');
 const Shipment = require('./models/Shipment');
-const ShipmentDetail = require('./models/Shipment_detail'); 
+const ShipmentDetail = require('./models/Shipment_detail');
 
 const UserSchema = new mongoose.Schema({
     name: String, email: { type: String, unique: true }, username: { type: String, unique: true },
@@ -87,14 +87,24 @@ app.use(cors({
     origin: true,
     credentials: true,
     exposedHeaders: ['Content-Disposition', 'X-Output-Format']
-})); 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+}));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 mongoose.set('bufferCommands', false);
+const redactedUri = (process.env.MONGO_URI || '').replace(/:([^@]+)@/, ':****@');
+console.log('Connecting to:', redactedUri);
+
 mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 8000, connectTimeoutMS: 8000 })
-    .then(() => console.log('MongoDB connected'))
-    .catch((err) => console.error('DB connect failed:', err));
+    .then(() => {
+        console.log('MongoDB connected');
+        const PORT = process.env.PORT || 3006;
+        app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    })
+    .catch((err) => {
+        console.error('DB connect failed:', err);
+        process.exit(1);
+    });
 
 // --- 4. AUTH ---
 app.post('/api/v1/auth/login', async (req, res) => {
@@ -110,7 +120,7 @@ app.post('/api/v1/auth/login', async (req, res) => {
 
 app.get('/api/v1/auth/me', async (req, res) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; 
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token' });
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
@@ -166,7 +176,7 @@ app.post('/api/upload-excel', upload.single('excelFile'), (req, res) => {
         if (headerRowIdx < 0 || bestScore < 2) headerRowIdx = 0;
 
         const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: '', range: headerRowIdx });
-        
+
         let currencyLabel = 'USD';
         const headers = Object.keys(rawRows[0] || {});
         const headerText = headers.join(' ').toUpperCase();
@@ -211,10 +221,10 @@ app.post('/api/upload-excel', upload.single('excelFile'), (req, res) => {
 
             const desc = getValue('Description', 'Description of Goods', 'DESC');
             const qty = safeParseFloat(getValue('Qty', 'Quantity', 'QTY'));
-            
+
             // PRIORITY: 'WITH FOB RATE' (from your input file) -> then 'Rate' -> then 'Price'
             const rate = safeParseFloat(getValue('WITH FOB RATE', 'Rate', 'Price', 'RATE'));
-            
+
             return {
                 description: desc,
                 hsn: getValue('HSN', 'HSN Code'),
@@ -223,15 +233,15 @@ app.post('/api/upload-excel', upload.single('excelFile'), (req, res) => {
                 amount: safeParseFloat(getValue('TOTAL', 'Amount', 'Total Amount')) || (qty * rate),
                 partNo: getValue('Part number', 'Part No'),
                 refNo: getValue('Order reference number', 'Ref No', 'Reference', 'Reference No'),
-                
+
                 // NEW FIELDS FOR TAX INVOICE
-                unit: getValue('Unit', 'UOM', 'Unit of Measure') || 'NOS', 
+                unit: getValue('Unit', 'UOM', 'Unit of Measure') || 'NOS',
                 igst: getValue('IGST Rate', 'IGST%', 'IGST', 'GST Rate', 'Tax Rate') || '0'
             };
         }).filter(i => i.description || i.qty > 0);
 
         res.json({ items, currencyLabel });
-        fs.unlink(req.file.path, () => {});
+        fs.unlink(req.file.path, () => { });
     } catch (err) { res.status(500).json({ error: 'Excel failed' }); }
 });
 
@@ -247,7 +257,7 @@ app.get('/api/download-sample', (req, res) => {
 app.get('/api/shipments', async (req, res) => {
     try {
         const query = {};
-        
+
         // Date Filter
         if (req.query.dateFrom || req.query.dateTo) {
             query.invoice_date = {};
@@ -280,7 +290,7 @@ app.get('/api/shipments', async (req, res) => {
             { $match: { shipment_id: { $in: shipmentIds } } },
             { $group: { _id: '$shipment_id', totalQty: { $sum: '$quantity' } } }
         ]);
-        
+
         const qtyLookup = {};
         quantityMap.forEach(q => qtyLookup[q._id.toString()] = q.totalQty);
 
@@ -319,11 +329,11 @@ app.post('/api/shipments/save', async (req, res) => {
         const body = req.body;
         const shipmentId = body._id;
         const rawInvoiceDate = parseDateOnly(body.invoiceDate);
-        
+
         const shipmentData = {
             invoice_number: body.invoiceNumber,
             invoice_date: rawInvoiceDate,
-            buyer_id: body.buyer?._id || body.buyer,      
+            buyer_id: body.buyer?._id || body.buyer,
             consignee_id: body.consignee?._id || body.consignee,
             cha_details: body.chaAgent || '',
             dispatch_location: body.dispatchLocation,
@@ -340,7 +350,7 @@ app.post('/api/shipments/save', async (req, res) => {
             insurance_cost: safeParseFloat(body.insuranceCharges),
             is_freight_in_split: toBoolean(body.splitFobFreight),
             currency: body.currencyLabel || 'USD',
-            status: 'Draft'
+            status: body.status || 'Draft'
         };
 
         let savedShipment;
@@ -375,7 +385,7 @@ app.post('/api/generate/working-excel', (req, res) => {
         const body = req.body;
         const lineItems = body.lineItems || [];
         const splitFobFreight = toBoolean(body.splitFobFreight);
-        
+
         const freightVal = safeParseFloat(body.freightCharges);
         const insuranceVal = safeParseFloat(body.insuranceCharges);
         let baseTotal = 0;
@@ -403,7 +413,7 @@ app.post('/api/generate/working-excel', (req, res) => {
         });
 
         const grandTotal = baseTotal + freightVal + insuranceVal;
-        excelRows.push({}, 
+        excelRows.push({},
             { "Description": "SUBTOTAL", "Split Total": baseTotal.toFixed(2) },
             { "Description": "FREIGHT", "Split Total": freightVal.toFixed(2) },
             { "Description": "INSURANCE", "Split Total": insuranceVal.toFixed(2) },
@@ -412,9 +422,9 @@ app.post('/api/generate/working-excel', (req, res) => {
 
         const wb = xlsx.utils.book_new();
         const ws = xlsx.utils.json_to_sheet(excelRows);
-        ws['!cols'] = [{wch:5}, {wch:15}, {wch:15}, {wch:30}, {wch:10}, {wch:8}, {wch:10}, {wch:12}, {wch:12}, {wch:12}];
+        ws['!cols'] = [{ wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
         xlsx.utils.book_append_sheet(wb, ws, "Working File");
-        
+
         const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="Working_File_${sanitizeFilename(body.invoiceNumber)}.xlsx"`);
@@ -426,9 +436,9 @@ app.post('/api/generate/working-excel', (req, res) => {
 app.post('/api/generate/invoice', async (req, res) => {
     try {
         const body = req.body;
-        const downloadVariant = body.downloadVariant || 'commercial_invoice'; 
+        const downloadVariant = body.downloadVariant || 'commercial_invoice';
         const safeInvoiceNo = sanitizeFilename(body.invoiceNumber);
-        
+
         const CONSTANT_EXPORTER = {
             name: "Morsebiz Technology Services Pvt Ltd",
             address: "20th Floor, Building No/Flat No – CTS No 95 4 B 3&4, 590 Oberoi Garden City, Goregaon East, Mumbai, Mumbai Suburban, Maharashtra 400063",
@@ -444,10 +454,10 @@ app.post('/api/generate/invoice', async (req, res) => {
         // --- 1. TAX INVOICE (NEW) ---
         if (downloadVariant === 'tax_invoice') {
             const exchangeRate = body.exchangeRate || 86.50; // Use provided rate or default
-            
+
             // Map items passing through all raw data including Unit and IGST
             const processedItems = body.lineItems.map(item => ({
-                ...item, 
+                ...item,
                 qty: safeParseFloat(item.qty),
                 rate: safeParseFloat(item.rate)
             }));
@@ -478,9 +488,9 @@ app.post('/api/generate/invoice', async (req, res) => {
             );
             filename = `Tax_Invoice_${safeInvoiceNo}.pdf`;
 
-        // --- 2. LETTERS ---
+            // --- 2. LETTERS ---
         } else if (['cha_letter', 'evd_letter', 'non_vintage_letter', 'scomet_letter'].includes(downloadVariant)) {
-            const chaName = body.chaAgent || ''; 
+            const chaName = body.chaAgent || '';
             const formattedDate = rawInvoiceDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
             const context = {
                 CHA_NAME: chaName, INVOICE_NO: body.invoiceNumber, DATE: formattedDate, INVOICE_DATE: formattedDate,
@@ -490,18 +500,18 @@ app.post('/api/generate/invoice', async (req, res) => {
                 cha_letter: 'CHA letter.docx',
                 evd_letter: 'EVD_letter.docx',
                 non_vintage_letter: 'non_vintage.docx',
-                scomet_letter: 'scomet_declaration.docx', 
+                scomet_letter: 'scomet_declaration.docx',
             };
             // Fallback for SCOMET
             if (!fs.existsSync(path.join(__dirname, 'word docs', templateMap.scomet_letter))) {
-                 if (fs.existsSync(path.join(__dirname, 'word docs', 'scomet declaratio.docx'))) {
-                     templateMap.scomet_letter = 'scomet declaratio.docx';
-                 }
+                if (fs.existsSync(path.join(__dirname, 'word docs', 'scomet declaratio.docx'))) {
+                    templateMap.scomet_letter = 'scomet declaratio.docx';
+                }
             }
-            buffer = await generateDocument(templateMap[downloadVariant], context, 'pdf'); 
+            buffer = await generateDocument(templateMap[downloadVariant], context, 'pdf');
             filename = `${downloadVariant}_${safeInvoiceNo}.pdf`;
 
-        // --- 3. COMMERCIAL INVOICE ---
+            // --- 3. COMMERCIAL INVOICE ---
         } else {
             const processedItems = body.lineItems.map((item, idx) => ({
                 description: item.description, hsn: item.hsn, qty: safeParseFloat(item.qty), rate: safeParseFloat(item.rate),
@@ -510,11 +520,11 @@ app.post('/api/generate/invoice', async (req, res) => {
             const splitFobFreight = toBoolean(body.splitFobFreight) || body.downloadVariant === 'split';
             const invoiceData = {
                 exporter: CONSTANT_EXPORTER, buyer: body.buyer, consignee: body.consigneeSameAsBuyer ? body.buyer : body.consignee,
-                chaAgent: { name: body.chaAgent || '' }, invoiceNumber: body.invoiceNumber, invoiceDate: rawInvoiceDate, 
+                chaAgent: { name: body.chaAgent || '' }, invoiceNumber: body.invoiceNumber, invoiceDate: rawInvoiceDate,
                 invoiceExpiryDate: calculatedExpiryDate, termsOfPayment: body.termsOfPayment, dispatchLocation: body.dispatchLocation,
                 preCarriageBy: body.preCarriageBy, placeOfReceipt: body.placeOfReceipt, portOfLoading: body.portOfLoading,
                 portOfDischarge: body.portOfDischarge, termsOfDelivery: body.termsOfDelivery, numberOfPackages: body.numberOfPackages,
-                totalNetWeight: body.totalNetWeight, totalGrossWeight: body.totalGrossWeight, 
+                totalNetWeight: body.totalNetWeight, totalGrossWeight: body.totalGrossWeight,
                 freightCharges: safeParseFloat(body.freightCharges), insuranceCharges: safeParseFloat(body.insuranceCharges),
                 splitFobFreight
             };
@@ -553,7 +563,7 @@ app.post('/api/generate/all-letters', async (req, res) => {
     try {
         const body = req.body;
         const safeInvoiceNo = sanitizeFilename(body.invoiceNumber);
-        
+
         const rawInvoiceDate = parseDateOnly(body.invoiceDate);
         const formattedDate = rawInvoiceDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
         const context = {
@@ -602,8 +612,8 @@ app.post('/api/upload-image', upload.single('imageFile'), async (req, res) => {
 
         // 1. Upload to Azure
         const azureUrl = await uploadToAzure(
-            req.file.path, 
-            req.file.originalname, 
+            req.file.path,
+            req.file.originalname,
             req.file.mimetype
         );
 
@@ -613,10 +623,10 @@ app.post('/api/upload-image', upload.single('imageFile'), async (req, res) => {
         });
 
         // 3. Respond with URL
-        res.json({ 
-            success: true, 
-            url: azureUrl, 
-            message: "Image uploaded successfully to Azure" 
+        res.json({
+            success: true,
+            url: azureUrl,
+            message: "Image uploaded successfully to Azure"
         });
 
     } catch (error) {
@@ -624,5 +634,7 @@ app.post('/api/upload-image', upload.single('imageFile'), async (req, res) => {
         res.status(500).json({ error: "Upload failed: " + error.message });
     }
 });
-const PORT = process.env.PORT ;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// --- OPS MODULE ---
+app.use('/api/v1/ops', require('./modules/ops'));
+
+// --- 7. STARTUP REMOVED HERE (Now inside mongoose.connect) ---

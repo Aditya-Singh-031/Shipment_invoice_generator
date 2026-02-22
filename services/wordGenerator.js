@@ -168,12 +168,12 @@ function labelValueRow(label, value, { labelSize = 20, valueSize = 20 } = {}) {
 function getImageBuffer() {
   // Looks for image.png in the root or services folder
   const paths = [
-      path.join(__dirname, '..', 'image.png'),
-      path.join(__dirname, 'image.png')
+    path.join(__dirname, '..', 'image.png'),
+    path.join(__dirname, 'image.png')
   ];
-  
+
   for (const p of paths) {
-      if (fs.existsSync(p)) return fs.readFileSync(p);
+    if (fs.existsSync(p)) return fs.readFileSync(p);
   }
   return null;
 }
@@ -182,30 +182,30 @@ function getImageBuffer() {
 // 1. COMMERCIAL INVOICE GENERATOR (Standard)
 // =========================================================================
 async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD') {
-  
+
   // --- Header ---
   const headerChildren = [];
   const imgBuffer = getImageBuffer();
   if (imgBuffer) {
-      headerChildren.push(new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new ImageRun({ data: imgBuffer, transformation: { width: 173, height: 60 } })]
-      }));
+    headerChildren.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new ImageRun({ data: imgBuffer, transformation: { width: 173, height: 60 } })]
+    }));
   }
   const header = new Header({ children: headerChildren });
 
   // --- Footer ---
   const footer = new Footer({
-      children: [
-          new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [new TextRun({ text: 'Morsebiz Technology Services Pvt Ltd', bold: true, size: 16 })]
-          }),
-          new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [new TextRun({ text: 'Regd. Office: 20th Floor, Oberoi Garden City, Mumbai 400063', size: 14 })]
-          }),
-      ]
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'Morsebiz Technology Services Pvt Ltd', bold: true, size: 16 })]
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'Regd. Office: 20th Floor, Oberoi Garden City, Mumbai 400063', size: 14 })]
+      }),
+    ]
   });
 
   const sectionChildren = [];
@@ -482,19 +482,19 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   const totalsTable = new Table({
     rows: totalsRows,
     // Aligned to RIGHT, same styling logic as main table, 2 columns
-    width: { size: 4896, type: WidthType.DXA }, 
+    width: { size: 4896, type: WidthType.DXA },
     alignment: AlignmentType.RIGHT
   });
 
   sectionChildren.push(totalsTable);
 
   const doc = new Document({
-      sections: [{
-          properties: { page: { margin: { top: 500, bottom: 500, left: 500, right: 500 } } },
-          headers: { default: header },
-          footers: { default: footer },
-          children: sectionChildren
-      }]
+    sections: [{
+      properties: { page: { margin: { top: 500, bottom: 500, left: 500, right: 500 } } },
+      headers: { default: header },
+      footers: { default: footer },
+      children: sectionChildren
+    }]
   });
 
   return await Packer.toBuffer(doc);
@@ -510,36 +510,36 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   const headerChildren = [];
   const imgBuffer = getImageBuffer();
   if (imgBuffer) {
-      headerChildren.push(new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [new ImageRun({ data: imgBuffer, transformation: { width: 173, height: 60 } })]
-      }));
+    headerChildren.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new ImageRun({ data: imgBuffer, transformation: { width: 173, height: 60 } })]
+    }));
   }
   const header = new Header({ children: headerChildren });
 
   // --- Footer ---
   const footer = new Footer({
-      children: [
-          new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [new TextRun({ text: 'Morsebiz Technology Services Pvt Ltd', bold: true, size: 16 })]
-          }),
-          new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [new TextRun({ text: 'Regd. Office: 20th Floor, Oberoi Garden City, Mumbai 400063', size: 14 })]
-          }),
-      ]
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'Morsebiz Technology Services Pvt Ltd', bold: true, size: 16 })]
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'Regd. Office: 20th Floor, Oberoi Garden City, Mumbai 400063', size: 14 })]
+      }),
+    ]
   });
 
   const sectionChildren = [];
 
   // Title
   sectionChildren.push(
-      new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 100, after: 100 },
-          children: [new TextRun({ text: 'TAX INVOICE', bold: true, size: 28, underline: {} })]
-      })
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 100, after: 100 },
+      children: [new TextRun({ text: 'TAX INVOICE', bold: true, size: 28, underline: {} })]
+    })
   );
 
   const exporter = invoiceData.exporter || {};
@@ -587,7 +587,7 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
     ],
     { labelSize: 18, valueSize: 18 }
   );
-  
+
   // Left Side: Exporter & Dispatch
   const exporterInfoCell = new TableCell({
     children: [
@@ -673,7 +673,7 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   sectionChildren.push(new Paragraph({ text: '' }));
 
   // --- PARTIES SECTION (Redesigned to match Commercial Invoice) ---
-  
+
   const consigneeCellChildren = [
     makeParagraph('Consignee (Ship To)', { bold: true, size: 22 }),
     makeParagraph(safeText(consignee.name, ''), { bold: true, size: 20 }),
@@ -707,8 +707,8 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   const headers = ['Sr', 'Description', 'HSN', 'Qty', 'Unit', 'Rate($)', 'Rate(₹)', 'Taxable(₹)', 'IGST%', 'IGST Amt', 'Total(₹)'];
   const taxColWidths = [500, 2480, 900, 500, 700, 850, 850, 900, 600, 900, 900];
   const headerRow = new TableRow({
-      tableHeader: true,
-      children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0', '000000', taxColWidths[idx]))
+    tableHeader: true,
+    children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0', '000000', taxColWidths[idx]))
   });
 
   const rows = [headerRow];
@@ -717,71 +717,71 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   let grandTotalINR = 0;
 
   lineItems.forEach((item, idx) => {
-      // Parse Values
-      const qty = parseFloat(item.qty) || 0;
-      const rateUSD = parseFloat(item.rate) || 0;
-      
-      // --- 1. CURRENCY CONVERSION ---
-      const rateINR = rateUSD * exRate;
-      const taxableValue = qty * rateINR;
+    // Parse Values
+    const qty = parseFloat(item.qty) || 0;
+    const rateUSD = parseFloat(item.rate) || 0;
 
-      // --- 2. IGST CALCULATION (Fixed) ---
-      let igstRate = 0;
-      // Clean IGST string (handles "!8%", "0.18", "18%")
-      let igstStr = String(item.igst || '').replace(/[^0-9.]/g, ''); 
-      let igstRaw = parseFloat(igstStr);
+    // --- 1. CURRENCY CONVERSION ---
+    const rateINR = rateUSD * exRate;
+    const taxableValue = qty * rateINR;
 
-      // FIX: If missing or 0, default to 18
-      if (isNaN(igstRaw) || igstRaw === 0) {
-        igstRaw = 18;
-      }
+    // --- 2. IGST CALCULATION (Fixed) ---
+    let igstRate = 0;
+    // Clean IGST string (handles "!8%", "0.18", "18%")
+    let igstStr = String(item.igst || '').replace(/[^0-9.]/g, '');
+    let igstRaw = parseFloat(igstStr);
 
-      // Logic: If < 1 (e.g. 0.18), treat as decimal. If >= 1 (e.g. 18), treat as percentage.
-      if (igstRaw > 0 && igstRaw < 1) igstRate = igstRaw * 100;
-      else igstRate = igstRaw;
+    // FIX: If missing or 0, default to 18
+    if (isNaN(igstRaw) || igstRaw === 0) {
+      igstRaw = 18;
+    }
 
-      const igstAmount = taxableValue * (igstRate / 100);
-      const totalRowINR = taxableValue + igstAmount;
+    // Logic: If < 1 (e.g. 0.18), treat as decimal. If >= 1 (e.g. 18), treat as percentage.
+    if (igstRaw > 0 && igstRaw < 1) igstRate = igstRaw * 100;
+    else igstRate = igstRaw;
 
-      // Add to Totals
-      totalTaxable += taxableValue;
-      totalIGST += igstAmount;
-      grandTotalINR += totalRowINR;
+    const igstAmount = taxableValue * (igstRate / 100);
+    const totalRowINR = taxableValue + igstAmount;
 
-      // Add Row
-      rows.push(new TableRow({
-          children: [
-              cell(String(idx + 1), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[0]),
-              cell(item.description, AlignmentType.LEFT, 1, false, 14, null, "000000", taxColWidths[1]),
-              cell(item.hsn, AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[2]),
-              cell(String(qty), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[3]),
-              cell(item.unit || 'NOS', AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[4]), // Unit from Excel
-              cell(rateUSD.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[5]),
-              cell(rateINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[6]),
-              cell(taxableValue.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[7]),
-              cell(`${igstRate}%`, AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[8]),
-              cell(igstAmount.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[9]),
-              cell(totalRowINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[10]),
-          ]
-      }));
+    // Add to Totals
+    totalTaxable += taxableValue;
+    totalIGST += igstAmount;
+    grandTotalINR += totalRowINR;
+
+    // Add Row
+    rows.push(new TableRow({
+      children: [
+        cell(String(idx + 1), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[0]),
+        cell(item.description, AlignmentType.LEFT, 1, false, 14, null, "000000", taxColWidths[1]),
+        cell(item.hsn, AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[2]),
+        cell(String(qty), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[3]),
+        cell(item.unit || 'NOS', AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[4]), // Unit from Excel
+        cell(rateUSD.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[5]),
+        cell(rateINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[6]),
+        cell(taxableValue.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[7]),
+        cell(`${igstRate}%`, AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[8]),
+        cell(igstAmount.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[9]),
+        cell(totalRowINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[10]),
+      ]
+    }));
   });
 
   // --- TOTAL ROW ---
   rows.push(new TableRow({
-      children: [
-          cell('Total', AlignmentType.RIGHT, 7, true), // Span first 7 columns
-          cell(totalTaxable.toFixed(2), AlignmentType.CENTER, 1, true),
-          cell('', AlignmentType.CENTER, 1),
-          cell(totalIGST.toFixed(2), AlignmentType.CENTER, 1, true),
-          cell(grandTotalINR.toFixed(2), AlignmentType.CENTER, 1, true),
-      ]
+    children: [
+      cell('Total', AlignmentType.RIGHT, 7, true), // Span first 7 columns
+      cell(totalTaxable.toFixed(2), AlignmentType.CENTER, 1, true),
+      cell('', AlignmentType.CENTER, 1),
+      cell(totalIGST.toFixed(2), AlignmentType.CENTER, 1, true),
+      cell(grandTotalINR.toFixed(2), AlignmentType.CENTER, 1, true),
+    ]
   }));
 
   const itemsTable = new Table({
-      rows: rows,
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      layout: TableLayoutType.FIXED,
-      columnWidths: taxColWidths
+    rows: rows,
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    columnWidths: taxColWidths
   });
 
   sectionChildren.push(itemsTable);
@@ -789,28 +789,262 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   // --- AMOUNT IN WORDS (Simple Representation) ---
   sectionChildren.push(new Paragraph({ text: '' }));
   sectionChildren.push(new Paragraph({
-      children: [
-          new TextRun({ text: 'Total Invoice Amount in INR: ', bold: true, size: 16 }), 
-          new TextRun({ text: `₹ ${grandTotalINR.toFixed(2)}`, size: 16 })
-      ]
+    children: [
+      new TextRun({ text: 'Total Invoice Amount in INR: ', bold: true, size: 16 }),
+      new TextRun({ text: `₹ ${grandTotalINR.toFixed(2)}`, size: 16 })
+    ]
   }));
 
   // --- DOCUMENT GENERATION ---
   const doc = new Document({
-      sections: [{
-          properties: {
-              page: {
-                  margin: { top: 500, bottom: 500, left: 500, right: 500 }, // Narrow margins
-                  orientation: PageOrientation.LANDSCAPE // Landscape to fit columns
-              }
-          },
-          headers: { default: header },
-          footers: { default: footer },
-          children: sectionChildren
-      }]
+    sections: [{
+      properties: {
+        page: {
+          margin: { top: 500, bottom: 500, left: 500, right: 500 },
+          orientation: PageOrientation.LANDSCAPE
+        }
+      },
+      headers: { default: header },
+      footers: { default: footer },
+      children: sectionChildren
+    }]
   });
 
   return await Packer.toBuffer(doc);
 }
 
-module.exports = { generateWordInvoice, generateTaxInvoiceWord };
+// =========================================================================
+// 3. PROFORMA INVOICE GENERATOR
+// =========================================================================
+async function generatePIWord(piData, lineItems, currencyLabel = 'INR') {
+  const headerChildren = [];
+  const imgBuffer = getImageBuffer();
+  if (imgBuffer) {
+    headerChildren.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new ImageRun({ data: imgBuffer, transformation: { width: 173, height: 60 } })]
+    }));
+  }
+  const header = new Header({ children: headerChildren });
+
+  const footer = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'Morsebiz Technology Services Pvt Ltd', bold: true, size: 16 })]
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: 'Regd. Office: 20th Floor, Oberoi Garden City, Mumbai 400063', size: 14 })]
+      }),
+    ]
+  });
+
+  const sectionChildren = [];
+
+  // Title
+  sectionChildren.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 200, after: 200 },
+      children: [new TextRun({ text: 'PROFORMA INVOICE', bold: true, size: 24, underline: {} })]
+    })
+  );
+
+  const exporter = piData.exporter || {
+    name: "Morsebiz Technology Services Pvt Ltd",
+    address: "20th Floor, Building No/Flat No – CTS No 95 4 B 3&4, 590 Oberoi Garden City, Goregaon East, Mumbai, Mumbai Suburban, Maharashtra 400063",
+    gstNo: "27AAGCM1373N1ZI"
+  };
+  const buyer = piData.buyer || {};
+  const consignee = piData.consignee || buyer;
+
+  const exporterIdRows = optionalLabelValueParagraphs(
+    [{ label: 'GST', value: exporter.gstNo }],
+    { labelSize: 18, valueSize: 18 }
+  );
+
+  const buyerIdRows = optionalLabelValueParagraphs(
+    [
+      { label: 'GST', value: buyer.gstNo || buyer.gst_number || (buyer.address?.country ? '' : '---') },
+      { label: 'PAN', value: buyer.panNo || buyer.pan_number || '---' }
+    ],
+    { labelSize: 18, valueSize: 18 }
+  );
+
+  const exporterInfoCell = new TableCell({
+    children: [
+      makeParagraph('Exporter / Shipper', { bold: true, size: 22 }),
+      makeParagraph(safeText(exporter.name, ''), { bold: true, size: 20 }),
+      ...(exporter.address ? [makeParagraph(exporter.address, { size: 18 })] : []),
+      ...exporterIdRows
+    ],
+    verticalAlign: VerticalAlign.TOP,
+    borders: DEFAULT_BORDERS
+  });
+
+  const invoiceInfoTable = new Table({
+    rows: [
+      labelValueRow('PI No.:', piData.piNumber),
+      labelValueRow('PI Date:', formatDateDisplay(piData.piDate)),
+      labelValueRow('Terms of Payment:', piData.termsOfPayment || '-'),
+      labelValueRow('Terms of Delivery:', formatDeliveryTerms(piData.termsOfDelivery)),
+      labelValueRow('Currency:', currencyLabel)
+    ],
+    width: { size: 5000, type: WidthType.DXA }
+  });
+
+  const mainTable = new Table({
+    rows: [
+      new TableRow({
+        children: [
+          exporterInfoCell,
+          new TableCell({
+            children: [invoiceInfoTable],
+            width: { size: 5040, type: WidthType.DXA },
+            verticalAlign: VerticalAlign.TOP,
+            borders: DEFAULT_BORDERS
+          })
+        ]
+      })
+    ],
+    width: { size: 10080, type: WidthType.DXA }
+  });
+
+  sectionChildren.push(mainTable);
+  sectionChildren.push(new Paragraph({ text: '' }));
+
+  const partiesTable = new Table({
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              makeParagraph('Consignee', { bold: true, size: 22 }),
+              makeParagraph(safeText(consignee.name || consignee.cust_name, ''), { bold: true, size: 20 }),
+              ...(consignee.address?.address_lines ? [makeParagraph(consignee.address.address_lines, { size: 18 })] : []),
+              ...(consignee.address?.city ? [makeParagraph(`${consignee.address.city}, ${consignee.address.country || ''}`, { size: 18 })] : [])
+            ],
+            width: { size: 5040, type: WidthType.DXA },
+            verticalAlign: VerticalAlign.TOP,
+            borders: DEFAULT_BORDERS
+          }),
+          new TableCell({
+            children: [
+              makeParagraph('Buyer', { bold: true, size: 22 }),
+              makeParagraph(safeText(buyer.name || buyer.cust_name, ''), { bold: true, size: 20 }),
+              ...(buyer.address?.address_lines ? [makeParagraph(buyer.address.address_lines, { size: 18 })] : []),
+              ...(buyer.address?.city ? [makeParagraph(`${buyer.address.city}, ${buyer.address.country || ''}`, { size: 18 })] : []),
+              ...buyerIdRows
+            ],
+            width: { size: 5040, type: WidthType.DXA },
+            verticalAlign: VerticalAlign.TOP,
+            borders: DEFAULT_BORDERS
+          })
+        ]
+      })
+    ],
+    width: { size: 10080, type: WidthType.DXA }
+  });
+
+  sectionChildren.push(partiesTable);
+  sectionChildren.push(new Paragraph({ text: '' }));
+
+  // Items Table
+  const headers = ['Sr', 'Brand', 'Part No', 'Description', 'Qty', 'Rate', 'Amount'];
+  const colWidths = [500, 1500, 1800, 3180, 800, 1100, 1200];
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000', colWidths[idx]))
+  });
+
+  const rows = [headerRow];
+  lineItems.forEach((item, i) => {
+    const qty = Number(item.quantity) || 0;
+    const rate = Number(item.rate) || 0;
+    const amount = qty * rate;
+    rows.push(new TableRow({
+      children: [
+        cell(String(i + 1), AlignmentType.CENTER, 1, false, 18, null, "000000", colWidths[0]),
+        cell(item.brand || '', AlignmentType.CENTER, 1, false, 18, null, "000000", colWidths[1]),
+        cell(item.part_number || '', AlignmentType.CENTER, 1, false, 18, null, "000000", colWidths[2]),
+        cell(item.description || '-', AlignmentType.LEFT, 1, false, 14, null, "000000", colWidths[3]),
+        cell(String(qty), AlignmentType.CENTER, 1, false, 18, null, "000000", colWidths[4]),
+        cell(formatMoney(rate, currencyLabel), AlignmentType.CENTER, 1, false, 18, null, "000000", colWidths[5]),
+        cell(formatMoney(amount, currencyLabel), AlignmentType.CENTER, 1, false, 18, null, "000000", colWidths[6]),
+      ]
+    }));
+  });
+
+  sectionChildren.push(new Table({
+    rows,
+    width: { size: 10080, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    columnWidths: colWidths
+  }));
+
+  sectionChildren.push(new Paragraph({ text: '' }));
+
+  // Summary Table
+  const subtotal = lineItems.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);
+  const taxTotal = subtotal * 0.18;
+  const grandTotal = subtotal + taxTotal;
+
+  const summaryRows = [
+    new TableRow({
+      children: [
+        cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
+        cell(formatMoney(subtotal, currencyLabel), AlignmentType.CENTER, 1, false, 18)
+      ]
+    }),
+    new TableRow({
+      children: [
+        cell('Tax (18%)', AlignmentType.RIGHT, 1, false, 18),
+        cell(formatMoney(taxTotal, currencyLabel), AlignmentType.CENTER, 1, false, 18)
+      ]
+    }),
+    new TableRow({
+      children: [
+        cell('GRAND TOTAL', AlignmentType.RIGHT, 1, true, 20),
+        cell(formatMoney(grandTotal, currencyLabel), AlignmentType.CENTER, 1, true, 20)
+      ]
+    })
+  ];
+
+  const summaryTable = new Table({
+    rows: summaryRows,
+    width: { size: 4000, type: WidthType.DXA },
+    alignment: AlignmentType.RIGHT
+  });
+
+  sectionChildren.push(summaryTable);
+  sectionChildren.push(new Paragraph({ text: '' }));
+
+  // Bank Details
+  if (piData.bank_account_info) {
+    const bank = piData.bank_account_info;
+    sectionChildren.push(makeParagraph('Bank Account Details:', { bold: true, size: 20 }));
+    sectionChildren.push(makeParagraph(`Bank Name: ${bank.bank_name}`, { size: 18 }));
+    sectionChildren.push(makeParagraph(`Account Name: ${bank.account_name}`, { size: 18 }));
+    sectionChildren.push(makeParagraph(`Account Number: ${bank.account_number}`, { size: 18 }));
+    sectionChildren.push(makeParagraph(`IFSC Code: ${bank.ifsc_code}`, { size: 18 }));
+    if (bank.swift_code) sectionChildren.push(makeParagraph(`SWIFT Code: ${bank.swift_code}`, { size: 18 }));
+  }
+
+  const finalDoc = new Document({
+    sections: [{
+      properties: { page: { margin: { top: 500, bottom: 500, left: 500, right: 500 } } },
+      headers: { default: header },
+      footers: { default: footer },
+      children: sectionChildren
+    }]
+  });
+
+  return await Packer.toBuffer(finalDoc);
+}
+
+module.exports = {
+  generateWordInvoice,
+  generateTaxInvoiceWord,
+  generatePIWord
+};
