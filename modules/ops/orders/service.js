@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const OpsOrder = require('./model');
 const OpsOrderDetail = require('../orderDetails/model');
 const OpsProduct = require('../products/model');
+const OpsBuyer = require('../buyers/model');
 const generateOrderNumber = require('../utils/generateOrderNumber');
 const { resolveBankAccount } = require('../utils/bankAccounts');
 
@@ -16,6 +17,8 @@ const { resolveBankAccount } = require('../utils/bankAccounts');
 const createOrder = async (data) => {
     try {
         const orderNumber = await generateOrderNumber();
+        const buyer = await OpsBuyer.findById(data.buyer_id).lean();
+        const isForeignBuyer = buyer && buyer.address && buyer.address.country && buyer.address.country.toLowerCase() !== 'india';
 
         // --- Process items: use user-provided brand, rate, igst ---
         const processedItems = [];
@@ -24,7 +27,7 @@ const createOrder = async (data) => {
 
         for (const item of data.items) {
             const rate = Number(item.rate) || 0;
-            const igstRate = Number(item.igst_rate) || 18;
+            const igstRate = isForeignBuyer ? 0 : (Number(item.igst_rate) || 18);
             const quantity = Number(item.quantity);
             const quantityFilled = Number(item.quantity_filled) || 0;
             const quantityCancelled = Number(item.quantity_cancelled) || 0;
@@ -177,6 +180,10 @@ const updateOrder = async (id, data, items) => {
 
     // If items are provided, recalculate totals and update order detail
     if (items && items.length > 0) {
+        const orderBeforeUpdate = await OpsOrder.findById(id).populate('buyer_id').lean();
+        const buyer = orderBeforeUpdate ? orderBeforeUpdate.buyer_id : null;
+        const isForeignBuyer = buyer && buyer.address && buyer.address.country && buyer.address.country.toLowerCase() !== 'india';
+
         let subtotal = 0;
         let taxTotal = 0;
         const processedItems = [];
@@ -184,7 +191,7 @@ const updateOrder = async (id, data, items) => {
         for (const item of items) {
             const quantity = Number(item.quantity) || 0;
             const rate = Number(item.rate) || 0;
-            const igstRate = Number(item.igst_rate) || 0;
+            const igstRate = isForeignBuyer ? 0 : (Number(item.igst_rate) || 0);
             const quantityFilled = Number(item.quantity_filled) || 0;
             const quantityCancelled = Number(item.quantity_cancelled) || 0;
             const quantityPending = item.quantity_pending != null

@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 
 const OpsBuyerSchema = new Schema({
     cust_name: { type: String, required: true, trim: true },
-    cust_id: { type: String, unique: true, trim: true, index: true },
+    cust_id: { type: String, trim: true, index: true },
 
     address: {
         address_lines: { type: String, trim: true },

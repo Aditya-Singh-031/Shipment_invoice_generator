@@ -248,8 +248,6 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   const buyerIdRows = optionalLabelValueParagraphs(
     [
-      { label: 'GST', value: buyerGst },
-      { label: 'PAN', value: buyerPan },
       { label: 'IEC', value: buyerIec }
     ],
     { labelSize: 18, valueSize: 18 }
@@ -572,8 +570,6 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
 
   const buyerIdRows = optionalLabelValueParagraphs(
     [
-      { label: 'GST', value: buyerGst },
-      { label: 'PAN', value: buyerPan },
       { label: 'IEC', value: buyerIec }
     ],
     { labelSize: 18, valueSize: 18 }
@@ -704,8 +700,9 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   sectionChildren.push(new Paragraph({ text: '' }));
 
   // Items Table Headers
-  const headers = ['Sr', 'Description', 'HSN', 'Qty', 'Unit', 'Rate($)', 'Rate(₹)', 'Taxable(₹)', 'IGST%', 'IGST Amt', 'Total(₹)'];
-  const taxColWidths = [500, 2480, 900, 500, 700, 850, 850, 900, 600, 900, 900];
+  const symbol = currencySymbol(invoiceData.currency || 'USD');
+  const headers = ['Sr', 'Description', 'HSN', 'Qty', 'Unit', `Rate(${symbol})`, 'Rate(₹)', 'Amount(₹)'];
+  const taxColWidths = [500, 3080, 1000, 700, 800, 1300, 1300, 1400];
   const headerRow = new TableRow({
     tableHeader: true,
     children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0', '000000', taxColWidths[idx]))
@@ -740,12 +737,10 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
     if (igstRaw > 0 && igstRaw < 1) igstRate = igstRaw * 100;
     else igstRate = igstRaw;
 
-    const igstAmount = taxableValue * (igstRate / 100);
-    const totalRowINR = taxableValue + igstAmount;
+    const totalRowINR = taxableValue;
 
     // Add to Totals
     totalTaxable += taxableValue;
-    totalIGST += igstAmount;
     grandTotalINR += totalRowINR;
 
     // Add Row
@@ -758,21 +753,14 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
         cell(item.unit || 'NOS', AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[4]), // Unit from Excel
         cell(rateUSD.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[5]),
         cell(rateINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[6]),
-        cell(taxableValue.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[7]),
-        cell(`${igstRate}%`, AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[8]),
-        cell(igstAmount.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[9]),
-        cell(totalRowINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[10]),
+        cell(totalRowINR.toFixed(2), AlignmentType.CENTER, 1, false, 14, null, "000000", taxColWidths[7]),
       ]
     }));
   });
 
-  // --- TOTAL ROW ---
   rows.push(new TableRow({
     children: [
       cell('Total', AlignmentType.RIGHT, 7, true), // Span first 7 columns
-      cell(totalTaxable.toFixed(2), AlignmentType.CENTER, 1, true),
-      cell('', AlignmentType.CENTER, 1),
-      cell(totalIGST.toFixed(2), AlignmentType.CENTER, 1, true),
       cell(grandTotalINR.toFixed(2), AlignmentType.CENTER, 1, true),
     ]
   }));
@@ -864,13 +852,7 @@ async function generatePIWord(piData, lineItems, currencyLabel = 'INR') {
     { labelSize: 18, valueSize: 18 }
   );
 
-  const buyerIdRows = optionalLabelValueParagraphs(
-    [
-      { label: 'GST', value: buyer.gstNo || buyer.gst_number || (buyer.address?.country ? '' : '---') },
-      { label: 'PAN', value: buyer.panNo || buyer.pan_number || '---' }
-    ],
-    { labelSize: 18, valueSize: 18 }
-  );
+  const buyerIdRows = [];
 
   const exporterInfoCell = new TableCell({
     children: [
@@ -987,20 +969,13 @@ async function generatePIWord(piData, lineItems, currencyLabel = 'INR') {
 
   // Summary Table
   const subtotal = lineItems.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);
-  const taxTotal = subtotal * 0.18;
-  const grandTotal = subtotal + taxTotal;
+  const grandTotal = subtotal;
 
   const summaryRows = [
     new TableRow({
       children: [
         cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
         cell(formatMoney(subtotal, currencyLabel), AlignmentType.CENTER, 1, false, 18)
-      ]
-    }),
-    new TableRow({
-      children: [
-        cell('Tax (18%)', AlignmentType.RIGHT, 1, false, 18),
-        cell(formatMoney(taxTotal, currencyLabel), AlignmentType.CENTER, 1, false, 18)
       ]
     }),
     new TableRow({
