@@ -30,12 +30,10 @@ const generatePIExcel = (order, orderDetail, buyerName) => {
 
     // Summary rows
     const subtotal = Number(order.subtotal) || 0;
-    const taxTotal = Number(order.tax_total) || 0;
     const grandTotal = Number(order.grand_total) || 0;
 
     excelRows.push({});
     excelRows.push({ 'Part Number': 'SUBTOTAL', 'Amount': subtotal });
-    excelRows.push({ 'Part Number': 'TAX TOTAL', 'Amount': taxTotal });
     excelRows.push({ 'Part Number': 'GRAND TOTAL', 'Amount': grandTotal });
 
     const wb = xlsx.utils.book_new();
@@ -53,6 +51,8 @@ const generatePIExcel = (order, orderDetail, buyerName) => {
 
     // Add a header info sheet
     const headerData = [
+        { Field: 'Exporter', Value: 'Morsebiz Technology Services Pvt Ltd' },
+        { Field: 'Exporter GST', Value: '27AAPCM5559A1Z9' },
         { Field: 'Order Number', Value: order.order_number || '' },
         { Field: 'PI Number', Value: order.pi_number || '' },
         { Field: 'PI Date', Value: order.pi_date ? new Date(order.pi_date).toLocaleDateString('en-IN') : '' },

@@ -17,17 +17,13 @@ const { resolveBankAccount } = require('../utils/bankAccounts');
 const createOrder = async (data) => {
     try {
         const orderNumber = await generateOrderNumber();
-        const buyer = await OpsBuyer.findById(data.buyer_id).lean();
-        const isForeignBuyer = buyer && buyer.address && buyer.address.country && buyer.address.country.toLowerCase() !== 'india';
 
-        // --- Process items: use user-provided brand, rate, igst ---
+        // --- Process items: use user-provided brand, rate ---
         const processedItems = [];
         let subtotal = 0;
-        let taxTotal = 0;
 
         for (const item of data.items) {
             const rate = Number(item.rate) || 0;
-            const igstRate = isForeignBuyer ? 0 : (Number(item.igst_rate) || 18);
             const quantity = Number(item.quantity);
             const quantityFilled = Number(item.quantity_filled) || 0;
             const quantityCancelled = Number(item.quantity_cancelled) || 0;
@@ -36,11 +32,7 @@ const createOrder = async (data) => {
                 : quantity - quantityFilled - quantityCancelled;
 
             const taxableValue = quantity * rate;
-            const taxAmount = taxableValue * (igstRate / 100);
-            const totalAmount = taxableValue + taxAmount;
-
             subtotal += taxableValue;
-            taxTotal += taxAmount;
 
             processedItems.push({
                 brand: item.brand || '',
@@ -51,14 +43,12 @@ const createOrder = async (data) => {
                 quantity_pending: quantityPending,
                 quantity_cancelled: quantityCancelled,
                 rate,
-                igst_rate: igstRate,
                 taxable_value: taxableValue,
-                tax_amount: taxAmount,
-                total_amount: totalAmount
+                total_amount: taxableValue
             });
         }
 
-        const grandTotal = subtotal + taxTotal;
+        const grandTotal = subtotal;
 
         // --- Create Order ---
         const order = await OpsOrder.create({
@@ -67,7 +57,6 @@ const createOrder = async (data) => {
             order_number: orderNumber,
             order_date: data.order_date || new Date(),
             currency: data.currency,
-            brands: data.brands || [],
             status: data.status || 'INQUIRY',
             pi_number: data.pi_number || undefined,
             pi_date: data.pi_date || undefined,
@@ -76,7 +65,6 @@ const createOrder = async (data) => {
             bank_account_key: data.bank_account_key || '',
             bank_account_info: data.bank_account_key ? resolveBankAccount(data.bank_account_key) : undefined,
             subtotal,
-            tax_total: taxTotal,
             grand_total: grandTotal
         });
 
@@ -180,18 +168,12 @@ const updateOrder = async (id, data, items) => {
 
     // If items are provided, recalculate totals and update order detail
     if (items && items.length > 0) {
-        const orderBeforeUpdate = await OpsOrder.findById(id).populate('buyer_id').lean();
-        const buyer = orderBeforeUpdate ? orderBeforeUpdate.buyer_id : null;
-        const isForeignBuyer = buyer && buyer.address && buyer.address.country && buyer.address.country.toLowerCase() !== 'india';
-
         let subtotal = 0;
-        let taxTotal = 0;
         const processedItems = [];
 
         for (const item of items) {
             const quantity = Number(item.quantity) || 0;
             const rate = Number(item.rate) || 0;
-            const igstRate = isForeignBuyer ? 0 : (Number(item.igst_rate) || 0);
             const quantityFilled = Number(item.quantity_filled) || 0;
             const quantityCancelled = Number(item.quantity_cancelled) || 0;
             const quantityPending = item.quantity_pending != null
@@ -199,10 +181,7 @@ const updateOrder = async (id, data, items) => {
                 : quantity - quantityFilled - quantityCancelled;
 
             const taxableValue = quantity * rate;
-            const taxAmount = taxableValue * (igstRate / 100);
-
             subtotal += taxableValue;
-            taxTotal += taxAmount;
 
             processedItems.push({
                 brand: item.brand || '',
@@ -211,16 +190,14 @@ const updateOrder = async (id, data, items) => {
                 quantity, quantity_filled: quantityFilled,
                 quantity_pending: quantityPending,
                 quantity_cancelled: quantityCancelled,
-                rate, igst_rate: igstRate,
+                rate,
                 taxable_value: taxableValue,
-                tax_amount: taxAmount,
-                total_amount: taxableValue + taxAmount
+                total_amount: taxableValue
             });
         }
 
         data.subtotal = subtotal;
-        data.tax_total = taxTotal;
-        data.grand_total = subtotal + taxTotal;
+        data.grand_total = subtotal;
 
         // Update the order detail document
         const existingOrder = await OpsOrder.findOne({ _id: id, is_deleted: false });
@@ -261,12 +238,12 @@ async function syncProductMaster(orderId) {
                 $set: {
                     brand: item.brand || undefined,
                     description: item.description || undefined,
-                    igst_rate: item.igst_rate ?? 18,
                 },
                 $setOnInsert: {
                     part_number: item.part_number,
                     rate: 0,       // PI rate ≠ PM rate — user sets this manually
                     hsn_code: '',
+                    igst_rate: 18,
                 }
             },
             { upsert: true, new: true }

@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const opsDb = require('./opsDb');
 
 /**
  * Auto-increment counter collection for generating sequential IDs.
@@ -10,7 +11,7 @@ const CounterSchema = new mongoose.Schema({
     seq: { type: Number, default: 0 }
 });
 
-const Counter = mongoose.model('OpsCounter', CounterSchema, 'ops_counters');
+const Counter = opsDb.model('OpsCounter', CounterSchema, 'counters');
 
 /**
  * Generates an order number in the format ORD-YYYY-XXXX.

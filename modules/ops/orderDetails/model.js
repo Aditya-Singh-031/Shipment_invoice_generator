@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const opsDb = require('../utils/opsDb');
 const Schema = mongoose.Schema;
 
 const OrderItemSchema = new Schema({
@@ -13,9 +14,7 @@ const OrderItemSchema = new Schema({
     quantity_pending: { type: Number, default: 0, min: 0 },
     quantity_cancelled: { type: Number, default: 0, min: 0 },
     rate: { type: Number, required: true, min: 0 },
-    igst_rate: { type: Number, required: true, min: 0 },
     taxable_value: { type: Number, default: 0 },
-    tax_amount: { type: Number, default: 0 },
     total_amount: { type: Number, default: 0 }
 }, { _id: true });
 
@@ -50,4 +49,4 @@ const OpsOrderDetailSchema = new Schema({
     }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-module.exports = mongoose.model('OpsOrderDetail', OpsOrderDetailSchema, 'ops_order_details');
+module.exports = opsDb.model('OpsOrderDetail', OpsOrderDetailSchema, 'order_details');

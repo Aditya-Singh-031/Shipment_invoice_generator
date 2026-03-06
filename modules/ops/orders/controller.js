@@ -78,8 +78,7 @@ const downloadPdf = async (req, res) => {
         bank_account_info: order.bank_account_info,
         buyer: {
             name: buyerData?.cust_name || buyerData?.name || '',
-            address: buyerData?.address,
-            gstNo: buyerData?.gst_number || buyerData?.cust_id
+            address: buyerData?.address
         },
         consignee: order.consignee_id ? {
             name: order.consignee_id.cust_name || order.consignee_id.name || '',

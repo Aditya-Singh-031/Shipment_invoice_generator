@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const opsDb = require('../utils/opsDb');
 const Schema = mongoose.Schema;
 
 const OpsBuyerSchema = new Schema({
@@ -32,4 +33,4 @@ const OpsBuyerSchema = new Schema({
     }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-module.exports = mongoose.model('OpsBuyer', OpsBuyerSchema, 'ops_buyers');
+module.exports = opsDb.model('OpsBuyer', OpsBuyerSchema, 'buyers');

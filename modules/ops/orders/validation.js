@@ -8,13 +8,12 @@ const ORDER_STATUSES = [
 ];
 
 const orderItemInput = Joi.object({
-    brand: Joi.string().required().trim(),
+    brand: Joi.string().allow('', null).trim(),
     part_number: Joi.string().required().trim(),
     quantity: Joi.number().required().min(1),
     rate: Joi.number().required().min(0),
     // Optional fields
     description: Joi.string().allow('', null),
-    igst_rate: Joi.number().min(0).default(18),
     quantity_filled: Joi.number().min(0).default(0),
     quantity_pending: Joi.number().min(0),
     quantity_cancelled: Joi.number().min(0).default(0)
@@ -25,7 +24,6 @@ const createOrderSchema = Joi.object({
     consignee_id: Joi.string().allow('', null),
     order_date: Joi.date().default(() => new Date()),
     currency: Joi.string().valid('INR', 'USD', 'EUR', 'GBP'),
-    brands: Joi.array().items(Joi.string().trim()).default([]),
     status: Joi.string().valid(...ORDER_STATUSES),
     items: Joi.array().items(orderItemInput).min(1).required(),
     // PI fields
@@ -41,7 +39,6 @@ const updateOrderSchema = Joi.object({
     consignee_id: Joi.string().allow('', null),
     order_date: Joi.date(),
     currency: Joi.string().valid('INR', 'USD', 'EUR', 'GBP'),
-    brands: Joi.array().items(Joi.string().trim()),
     status: Joi.string().valid(...ORDER_STATUSES),
     pi_number: Joi.string().allow('', null).trim(),
     pi_date: Joi.date().allow(null),

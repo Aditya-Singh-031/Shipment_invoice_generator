@@ -842,7 +842,7 @@ async function generatePIWord(piData, lineItems, currencyLabel = 'INR') {
   const exporter = piData.exporter || {
     name: "Morsebiz Technology Services Pvt Ltd",
     address: "20th Floor, Building No/Flat No – CTS No 95 4 B 3&4, 590 Oberoi Garden City, Goregaon East, Mumbai, Mumbai Suburban, Maharashtra 400063",
-    gstNo: "27AAGCM1373N1ZI"
+    gstNo: "27AAPCM5559A1Z9"
   };
   const buyer = piData.buyer || {};
   const consignee = piData.consignee || buyer;

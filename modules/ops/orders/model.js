@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const opsDb = require('../utils/opsDb');
 const Schema = mongoose.Schema;
 
 const ORDER_STATUSES = [
@@ -20,7 +21,6 @@ const OpsOrderSchema = new Schema({
     order_number: { type: String, unique: true, index: true },
     order_date: { type: Date, default: Date.now },
     currency: { type: String, enum: ['INR', 'USD', 'EUR', 'GBP'], default: 'INR' },
-    brands: [{ type: String, trim: true }],
     status: { type: String, enum: ORDER_STATUSES, default: 'INQUIRY' },
     order_details_id: { type: Schema.Types.ObjectId, ref: 'OpsOrderDetail' },
 
@@ -39,7 +39,6 @@ const OpsOrderSchema = new Schema({
     },
 
     subtotal: { type: Number, default: 0 },
-    tax_total: { type: Number, default: 0 },
     grand_total: { type: Number, default: 0 },
 
     is_deleted: { type: Boolean, default: false },
@@ -52,4 +51,4 @@ const OpsOrderSchema = new Schema({
 
 OpsOrderSchema.statics.ORDER_STATUSES = ORDER_STATUSES;
 
-module.exports = mongoose.model('OpsOrder', OpsOrderSchema, 'ops_orders');
+module.exports = opsDb.model('OpsOrder', OpsOrderSchema, 'orders');
