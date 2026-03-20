@@ -374,7 +374,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   // Items Table
   const headers = ['Sr', 'Ref No', 'Part No', 'Description of Goods', 'HSN/SAC', 'Qty', 'Rate', 'Amount'];
-  const colWidths = [500, 2100, 1200, 2500, 1000, 700, 900, 1200];
+  const colWidths = [600, 2100, 1200, 2400, 1000, 700, 900, 1200];
   const headerRow = new TableRow({
     tableHeader: true,
     children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000', colWidths[idx]))
@@ -702,7 +702,7 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   // Items Table Headers
   const symbol = currencySymbol(invoiceData.currency || 'USD');
   const headers = ['Sr', 'Description', 'HSN', 'Qty', 'Unit', `Rate(${symbol})`, 'Rate(₹)', 'Amount(₹)'];
-  const taxColWidths = [500, 3080, 1000, 700, 800, 1300, 1300, 1400];
+  const taxColWidths = [600, 2980, 1000, 700, 800, 1300, 1300, 1400];
   const headerRow = new TableRow({
     tableHeader: true,
     children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 14, 'E0E0E0', '000000', taxColWidths[idx]))
@@ -934,7 +934,7 @@ async function generatePIWord(piData, lineItems, currencyLabel = 'INR') {
 
   // Items Table
   const headers = ['Sr', 'Brand', 'Part No', 'Description', 'Qty', 'Rate', 'Amount'];
-  const colWidths = [500, 1500, 1800, 3180, 800, 1100, 1200];
+  const colWidths = [900, 1500, 1800, 2780, 800, 1100, 1200];
   const headerRow = new TableRow({
     tableHeader: true,
     children: headers.map((h, idx) => cell(h, AlignmentType.CENTER, 1, true, 20, 'E0E0E0', '000000', colWidths[idx]))
