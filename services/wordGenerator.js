@@ -14,6 +14,7 @@ function formatDate(date) {
   return `${d.getDate()}-${d.toLocaleString('en-US', { month: 'short' })}-${d.getFullYear()}`;
 }
 
+
 const DEFAULT_BORDERS = {
   top: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
   bottom: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
