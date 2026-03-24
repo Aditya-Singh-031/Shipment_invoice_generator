@@ -329,6 +329,13 @@ app.post('/api/shipments/save', async (req, res) => {
         const body = req.body;
         const shipmentId = body._id;
         const rawInvoiceDate = parseDateOnly(body.invoiceDate);
+        const deliveryTerms = body.termsOfDelivery || 'FOB';
+
+        shipmentData.fob_value = safeParseFloat(body.fobValue || body.freightCharges);  // FOB always present (except EXW)
+        shipmentData.freight_cost = (deliveryTerms === 'CFR' || deliveryTerms === 'CIF')
+          ? safeParseFloat(body.freightCharges) : 0;
+        shipmentData.insurance_cost = deliveryTerms === 'CIF'
+          ? safeParseFloat(body.insuranceCharges) : 0;
 
         const shipmentData = {
             invoice_number: body.invoiceNumber,
@@ -336,6 +343,7 @@ app.post('/api/shipments/save', async (req, res) => {
             buyer_id: body.buyer?._id || body.buyer,
             consignee_id: body.consignee?._id || body.consignee,
             cha_details: body.chaAgent || '',
+            replacement_to: body.replacementTo || '',
             dispatch_location: body.dispatchLocation,
             pre_carriage: body.preCarriageBy,
             receipt_place: body.placeOfReceipt,
@@ -349,6 +357,8 @@ app.post('/api/shipments/save', async (req, res) => {
             freight_cost: safeParseFloat(body.freightCharges),
             insurance_cost: safeParseFloat(body.insuranceCharges),
             is_freight_in_split: toBoolean(body.splitFobFreight),
+            exchange_rate: safeParseFloat(body.exchangeRate) || 86.50,
+            cha_details: body.chaAgent || '',
             currency: body.currencyLabel || 'USD',
             status: body.status || 'Draft'
         };
@@ -363,14 +373,17 @@ app.post('/api/shipments/save', async (req, res) => {
 
         if (body.lineItems?.length > 0) {
             const lineItemDocs = body.lineItems.map(item => ({
-                shipment_id: savedShipment._id,
-                reference_number: item.refNo || '',
-                part_number: item.partNo || '',
-                description: item.description || '',
-                hsn_code: item.hsn || '',
-                quantity: safeParseFloat(item.qty),
-                unit_price: safeParseFloat(item.rate),
+              shipment_id: savedShipment._id,
+              reference_number: item.refNo || '',
+              part_number: item.partNo || '',
+              description: item.description || '',
+              hsn_code: item.hsn || '',
+              quantity: safeParseFloat(item.qty),
+              unit_price: safeParseFloat(item.rate),
+              unit: item.unit || 'NOS',      // ← ADD
+              igst_rate: item.igst || '18',  // ← ADD
             }));
+
             await ShipmentDetail.insertMany(lineItemDocs);
         }
         res.json({ success: true, shipmentId: savedShipment._id });
@@ -438,7 +451,6 @@ app.post('/api/generate/invoice', async (req, res) => {
         const body = req.body;
         const downloadVariant = body.downloadVariant || 'commercial_invoice';
         const safeInvoiceNo = sanitizeFilename(body.invoiceNumber);
-
         const CONSTANT_EXPORTER = {
             name: "Morsebiz Technology Services Pvt Ltd",
             address: "20th Floor, Building No/Flat No – CTS No 95 4 B 3&4, 590 Oberoi Garden City, Goregaon East, Mumbai, Mumbai Suburban, Maharashtra 400063",
@@ -526,6 +538,7 @@ app.post('/api/generate/invoice', async (req, res) => {
                 portOfDischarge: body.portOfDischarge, termsOfDelivery: body.termsOfDelivery, numberOfPackages: body.numberOfPackages,
                 totalNetWeight: body.totalNetWeight, totalGrossWeight: body.totalGrossWeight,
                 freightCharges: safeParseFloat(body.freightCharges), insuranceCharges: safeParseFloat(body.insuranceCharges),
+                replacementTo: body.replacementTo || '',
                 splitFobFreight
             };
             buffer = await generateWordInvoice(invoiceData, processedItems, body.currencyLabel || 'USD');
