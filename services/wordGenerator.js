@@ -308,6 +308,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   const invoiceInfoTable = new Table({
     rows: [
       labelValueRow('Invoice No.:', invoiceData.invoiceNumber),
+      ...(invoiceData.replacementTo ? [labelValueRow('In Replacement of:', invoiceData.replacementTo)] : []),
       labelValueRow('Invoice Date:', formatDateDisplay(invoiceData.invoiceDate)),
       labelValueRow('Expiry Date:', formatDateDisplay(invoiceData.invoiceExpiryDate)),
       labelValueRow('Terms of Payment:', invoiceData.termsOfPayment || '-'),
