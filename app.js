@@ -18,8 +18,7 @@ const corsOptions = {
 
 // Handle all CORS + preflight
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
+app.options('/{*path}', cors(corsOptions));  // ✅ new syntax
 
 const mongoose = require('mongoose');
 const multer = require('multer');
