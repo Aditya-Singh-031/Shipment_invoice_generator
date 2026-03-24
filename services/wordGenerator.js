@@ -179,20 +179,6 @@ function getImageDimensions(buffer) {
   return { width: 200, height: 60 }; // safe fallback
 }
 
-// Then in header builder (replace all 3 occurrences):
-if (imgBuffer) {
-  const { width: imgW, height: imgH } = getImageDimensions(imgBuffer);
-  const targetWidth = 180;
-  const targetHeight = Math.round((imgH / imgW) * targetWidth);
-  headerChildren.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
-    children: [new ImageRun({
-      data: imgBuffer,
-      transformation: { width: targetWidth, height: targetHeight }
-    })]
-  }));
-}
-
 // =========================================================================
 // 1. COMMERCIAL INVOICE GENERATOR (Standard)
 // =========================================================================
