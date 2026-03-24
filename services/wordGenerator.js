@@ -439,43 +439,46 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
 
   const freightCharges = splitFobFreight ? 0 : baseFreightCharges;
   const insuranceCharges = splitFobFreight ? 0 : baseInsuranceCharges;
+  const deliveryTerms = String(invoiceData.termsOfDelivery || '').toUpperCase();
   const grandTotal = subtotalAmount + freightCharges + insuranceCharges;
-
-  // --- UPDATED TOTALS TABLE (Commercial Invoice) ---
+  
   const totalsRows = [
-    new TableRow({
-      children: [
-        cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
-        cell(formatMoney(subtotalAmount, currencyLabel), AlignmentType.CENTER, 1, false, 18)
-      ]
-    })
+    new TableRow({ children: [
+      cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
+      cell(formatMoney(subtotalAmount, currencyLabel), AlignmentType.CENTER, 1, false, 18)
+    ]})
   ];
 
-  if (!splitFobFreight) {
-    totalsRows.push(
-      new TableRow({
-        children: [
-          cell('Freight', AlignmentType.RIGHT, 1, false, 18),
-          cell(formatMoney(freightCharges, currencyLabel), AlignmentType.CENTER, 1, false, 18)
-        ]
-      }),
-      new TableRow({
-        children: [
-          cell('Insurance', AlignmentType.RIGHT, 1, false, 18),
-          cell(formatMoney(insuranceCharges, currencyLabel), AlignmentType.CENTER, 1, false, 18)
-        ]
-      })
-    );
+  // Only add FOB/Freight/Insurance rows when split is OFF and terms call for it
+  if (!splitFobFreight && deliveryTerms !== 'EXW') {
+    // FOB row always present for FOB, CFR, CIF
+    totalsRows.push(new TableRow({ children: [
+      cell('FOB Value', AlignmentType.RIGHT, 1, false, 18),
+      cell(formatMoney(freightCharges, currencyLabel), AlignmentType.CENTER, 1, false, 18)
+    ]}));
+
+    // Freight only for CFR and CIF
+    if (deliveryTerms === 'CFR' || deliveryTerms === 'CIF') {
+      totalsRows.push(new TableRow({ children: [
+        cell('Freight', AlignmentType.RIGHT, 1, false, 18),
+        cell(formatMoney(freightCharges, currencyLabel), AlignmentType.CENTER, 1, false, 18)
+      ]}));
+    }
+
+    // Insurance only for CIF
+    if (deliveryTerms === 'CIF') {
+      totalsRows.push(new TableRow({ children: [
+        cell('Insurance', AlignmentType.RIGHT, 1, false, 18),
+        cell(formatMoney(insuranceCharges, currencyLabel), AlignmentType.CENTER, 1, false, 18)
+      ]}));
+    }
   }
 
-  totalsRows.push(
-    new TableRow({
-      children: [
-        cell('TOTAL', AlignmentType.RIGHT, 1, true, 20),
-        cell(formatMoney(grandTotal, currencyLabel), AlignmentType.CENTER, 1, true, 20)
-      ]
-    })
-  );
+  totalsRows.push(new TableRow({ children: [
+    cell('TOTAL', AlignmentType.RIGHT, 1, true, 20),
+    cell(formatMoney(grandTotal, currencyLabel), AlignmentType.CENTER, 1, true, 20)
+  ]}));
+
 
   const totalsTable = new Table({
     rows: totalsRows,
