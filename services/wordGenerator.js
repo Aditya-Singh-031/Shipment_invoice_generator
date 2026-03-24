@@ -441,7 +441,7 @@ async function generateWordInvoice(invoiceData, lineItems, currencyLabel = 'USD'
   const insuranceCharges = splitFobFreight ? 0 : baseInsuranceCharges;
   const deliveryTerms = String(invoiceData.termsOfDelivery || '').toUpperCase();
   const grandTotal = subtotalAmount + freightCharges + insuranceCharges;
-  
+
   const totalsRows = [
     new TableRow({ children: [
       cell('Subtotal', AlignmentType.RIGHT, 1, false, 18),
@@ -513,7 +513,13 @@ async function generateTaxInvoiceWord(invoiceData, lineItems, exchangeRate) {
   if (imgBuffer) {
     headerChildren.push(new Paragraph({
       alignment: AlignmentType.CENTER,
-      children: [new ImageRun({ data: imgBuffer, transformation: { width: 173, height: 60 } })]
+      // ✅ NEW — maintain aspect ratio, fix width only
+      children: [new ImageRun({
+        data: imgBuffer,
+        transformation: { width: 200, height: 60 },  // Let docx scale proportionally
+        // If docx-library supports it:
+        altText: { description: 'Morsebiz Logo' }
+      })]
     }));
   }
   const header = new Header({ children: headerChildren });
