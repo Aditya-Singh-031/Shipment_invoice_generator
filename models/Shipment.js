@@ -12,7 +12,7 @@ const ShipmentSchema = new Schema({
   // --- Logistics & Header Info ---
   invoice_number: { type: String, required: true, unique: true },
   invoice_date: { type: Date, default: Date.now },
-  
+  replacement_to: { type: String, default: '' },
   dispatch_location: { type: String },
   pre_carriage: { type: String, default: 'Road Transport' },
   receipt_place: { type: String, default: 'Nhava Sheva Mumbai' },
