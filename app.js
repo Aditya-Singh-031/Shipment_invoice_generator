@@ -1,10 +1,28 @@
 require('dotenv').config();
+const cors = require('cors');
+
+const corsOptions = {
+  origin: 'https://ops.morsebiz.com',          // or ['https://ops.morsebiz.com']
+  credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization'
+  ],
+  exposedHeaders: ['Content-Disposition', 'X-Output-Format'],
+};
+
+// Handle all CORS + preflight
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const xlsx = require('xlsx');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
