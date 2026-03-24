@@ -1,6 +1,7 @@
 require('dotenv').config();
+const express = require('express');
 const cors = require('cors');
-
+const app = express();
 const corsOptions = {
   origin: 'https://ops.morsebiz.com',          // or ['https://ops.morsebiz.com']
   credentials: true,
@@ -19,7 +20,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-const express = require('express');
+
 const mongoose = require('mongoose');
 const multer = require('multer');
 const xlsx = require('xlsx');
@@ -97,7 +98,7 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema, 'users');
 
-const app = express();
+
 const upload = multer({ dest: 'uploads/' });
 const JWT_SECRET = process.env.JWT_SECRET || "morsebiz_secret_key_123";
 
