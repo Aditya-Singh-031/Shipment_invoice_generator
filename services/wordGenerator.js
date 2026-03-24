@@ -165,17 +165,31 @@ function labelValueRow(label, value, { labelSize = 20, valueSize = 20 } = {}) {
 }
 
 // Helper to get image buffer safely
-function getImageBuffer() {
-  // Looks for image.png in the root or services folder
-  const paths = [
-    path.join(__dirname, '..', 'image.png'),
-    path.join(__dirname, 'image.png')
-  ];
+// Add this helper near getImageBuffer():
+function getImageDimensions(buffer) {
+  // PNG: width at bytes 16-19, height at 20-23
+  try {
+    if (buffer[1] === 0x50 && buffer[2] === 0x4E) { // PNG magic
+      const width = buffer.readUInt32BE(16);
+      const height = buffer.readUInt32BE(20);
+      return { width, height };
+    }
+  } catch(e) {}
+  return { width: 200, height: 60 }; // safe fallback
+}
 
-  for (const p of paths) {
-    if (fs.existsSync(p)) return fs.readFileSync(p);
-  }
-  return null;
+// Then in header builder (replace all 3 occurrences):
+if (imgBuffer) {
+  const { width: imgW, height: imgH } = getImageDimensions(imgBuffer);
+  const targetWidth = 180;
+  const targetHeight = Math.round((imgH / imgW) * targetWidth);
+  headerChildren.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    children: [new ImageRun({
+      data: imgBuffer,
+      transformation: { width: targetWidth, height: targetHeight }
+    })]
+  }));
 }
 
 // =========================================================================
